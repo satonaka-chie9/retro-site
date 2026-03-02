@@ -1,0 +1,116 @@
+/* ===== 全体 ===== */
+body {
+  margin: 0;
+  background: #000;
+  color: #00FF00;
+  font: 14px/1.4 "MS UI Gothic", monospace;
+}
+
+.title {
+  text-align: center;
+  margin: 20px 0;
+}
+
+hr {
+  border: 1px solid #00FF00;
+}
+
+/* ===== 共通レイアウト ===== */
+.layout {
+  display: flex;
+  justify-content: center; /* 全体中央 */
+  gap: 30px;
+  width: 100%;
+}
+
+/* ===== サイドバー ===== */
+.side_menu {
+  width: 200px;
+  flex-shrink: 0;
+  border-right: 2px solid #00FF00;
+  padding-right: 10px;
+}
+
+.side_menu a {
+  display: block;
+  border: 2px solid #00FF00;
+  padding: 5px 10px;
+  margin-bottom: 5px;
+  text-decoration: none;
+  color: #00FF00;
+  background: #0c0c0c;
+}
+
+.side_menu a:hover {
+  background: #003300;
+}
+
+.menu_title {
+  margin-top: 20px;
+}
+
+/* カウンター */
+.counter {
+  font-family: "Courier New", monospace;
+  font-size: 20px;
+  border: 2px solid #00FF00;
+  padding: 5px 10px;
+  display: inline-block;
+  margin-top: 5px;
+}
+
+/* ===== メインコンテンツ共通 ===== */
+.main_content {
+  width: 600px;
+}
+
+/* ===== BBS投稿 ===== */
+.post {
+  border: 2px solid #00FF00;
+  padding: 8px;
+  margin-bottom: 15px;
+  background: #000;
+}
+
+.post_header {
+  font-weight: bold;
+  margin-bottom: 5px;
+  font-size: 13px;
+}
+
+.post_body {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+/* ===== 投稿フォーム ===== */
+.post_form {
+  border: 2px solid #00FF00;
+  padding: 10px;
+  margin-top: 30px;
+}
+
+.post_form h2 {
+  margin-top: 0;
+  font-size: 16px;
+}
+
+input, textarea {
+  background: #000;
+  color: #00FF00;
+  border: 1px solid #00FF00;
+  font-family: "MS UI Gothic", monospace;
+}
+
+input[type="submit"],
+input[type="reset"] {
+  background: #0c0c0c;
+  border: 2px solid #00FF00;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+
+input[type="submit"]:hover,
+input[type="reset"]:hover {
+  background: #003300;
+}

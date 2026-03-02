@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Retro Site - BBS</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<h1 class="title">BBS</h1>
+<hr>
+
+<div class="layout">
+
+  <!-- サイドバー -->
+  <div class="side_menu">
+    <a href="index.html">TOP</a>
+    <a href="#">PROFILE</a>
+    <a href="#">GALLERY</a>
+
+    <p class="menu_title">アクセスカウンタ</p>
+    <div class="counter">
+      <span>000123</span>
+    </div>
+  </div>
+
+  <!-- メインコンテンツ -->
+  <div class="main_content">
+
+    <!-- 投稿一覧 -->
+    <div class="post">
+      <div class="post_header">
+        No.1 名無しさん 2026/02/28 12:34
+      </div>
+      <pre class="post_body">こんにちは、これはサンプル投稿です。
+昔のBBSっぽく見せたい！</pre>
+    </div>
+
+    <div class="post">
+      <div class="post_header">
+        No.2 名無しさん 2026/02/28 12:40
+      </div>
+      <pre class="post_body">2つ目の投稿も表示してみるテスト。</pre>
+    </div>
+
+    <!-- 投稿フォーム（main_contentの中に入れる！） -->
+    <div class="post_form">
+      <h2>書き込みフォーム</h2>
+      <form>
+        <div>
+          名前：<input type="text" name="name" size="20">
+        </div>
+
+        <div>
+          本文：<br>
+          <textarea name="message" rows="5" cols="50"></textarea>
+        </div>
+
+        <div>
+          <input type="submit" value="書き込む">
+          <input type="reset" value="リセット">
+        </div>
+      </form>
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>
