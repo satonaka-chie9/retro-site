@@ -27,20 +27,33 @@
   <!-- メインコンテンツ -->
   <div class="main_content">
 
-    <!-- 投稿一覧（ここにJSで差し込む） -->
-    <div id="posts_container"></div>
+    <!-- 投稿一覧 -->
+    <div class="post">
+      <div class="post_header">
+        No.1 名無しさん 2026/02/28 12:34
+      </div>
+      <pre class="post_body">こんにちは、これはサンプル投稿です。
+昔のBBSっぽく見せたい！</pre>
+    </div>
 
-    <!-- 投稿フォーム -->
+    <div class="post">
+      <div class="post_header">
+        No.2 名無しさん 2026/02/28 12:40
+      </div>
+      <pre class="post_body">2つ目の投稿も表示してみるテスト。</pre>
+    </div>
+
+    <!-- 投稿フォーム（main_contentの中に入れる！） -->
     <div class="post_form">
       <h2>書き込みフォーム</h2>
-      <form id="postForm">
+      <form>
         <div>
-          名前：<input type="text" id="name" size="20" value="名無しさん">
+          名前：<input type="text" name="name" size="20">
         </div>
 
         <div>
           本文：<br>
-          <textarea id="message" rows="5" cols="50" required></textarea>
+          <textarea name="message" rows="5" cols="50"></textarea>
         </div>
 
         <div>
@@ -54,6 +67,5 @@
 
 </div>
 
-<script src="js/bbs.js"></script>
 </body>
 </html>
