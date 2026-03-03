@@ -7,23 +7,44 @@ async function loadPosts() {
   const container = document.getElementById("posts_container");
   container.innerHTML = "";
 
-  data.forEach(post => {
-    const div = document.createElement("div");
-    div.className = "post";
+ data.forEach(post => {
+  const div = document.createElement("div");
+  div.className = "post";
 
-    div.innerHTML = `
-      <div class="post_header">
-        No.${post.id} ${post.name} 
-        ${new Date(post.created_at).toLocaleString("ja-JP", {
-            timeZone: "Asia/Tokyo"
-        })}
-      </div>
-      <pre class="post_body">${post.content}</pre>
-    `;
-
-    container.appendChild(div);
+  const created = new Date(post.created_at).toLocaleString("ja-JP", {
+    timeZone: "Asia/Tokyo"
   });
-}
+
+  let editedMark = "";
+
+  if (post.updated_at) {
+    editedMark = "（編集済）";
+  }
+
+  div.innerHTML = `
+    <div class="post_header">
+      No.${post.id} ${post.name}
+      ${created} ${editedMark}
+    </div>
+    <pre class="post_body"></pre>
+    <button class="edit-btn">編集</button>
+    <button class="delete-btn">削除</button>
+  `;
+
+  div.querySelector(".post_body").textContent = post.content;
+
+  // ★ これが必要
+  div.querySelector(".edit-btn").addEventListener("click", () => {
+    editPost(post.id, post.content);
+  });
+
+  div.querySelector(".delete-btn").addEventListener("click", () => {
+    deletePost(post.id);
+  });
+
+  container.appendChild(div);
+}); // ← forEach閉じる
+} // ← loadPosts閉じる
 
 document.getElementById("postForm").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -42,3 +63,29 @@ document.getElementById("postForm").addEventListener("submit", async (e) => {
 });
 
 loadPosts();
+
+async function editPost(id, currentContent) {
+  const newContent = prompt("内容を編集", currentContent);
+  if (!newContent) return;
+
+  await fetch(API_BASE + "/api/posts/" + id, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: "名無しさん",
+      content: newContent
+    })
+  });
+
+  loadPosts();
+}
+
+async function deletePost(id) {
+  if (!confirm("本当に削除しますか？")) return;
+
+  await fetch(API_BASE + "/api/posts/" + id, {
+    method: "DELETE"
+  });
+
+  loadPosts();
+}

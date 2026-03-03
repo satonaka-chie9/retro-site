@@ -16,13 +16,23 @@ db.serialize(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT DEFAULT '名無しさん',
       content TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME
     )
   `);
 });
 
 // 投稿追加
-app.post("/api/posts", (req, res) => {
+const { validationResult } = require("express-validator");
+const { postValidation } = require("./validators/postValidator");
+
+app.post("/api/posts", postValidation, (req, res) => {
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   const { name, content } = req.body;
 
   db.run(
@@ -32,7 +42,38 @@ app.post("/api/posts", (req, res) => {
       if (err) {
         return res.status(500).json({ error: err.message });
       }
-      res.json({ id: this.lastID });
+      res.json({ success: true });
+    }
+  );
+});
+
+// 投稿更新
+app.put("/api/posts/:id", postValidation, (req, res) => {
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { id } = req.params;
+  const { name, content } = req.body;
+
+  db.run(
+    `UPDATE posts
+     SET name = ?, content = ?, updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?`,
+    [name || "名無しさん", content, id],
+    function (err) {
+
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+
+      if (this.changes === 0) {
+        return res.status(404).json({ error: "投稿が見つかりません" });
+      }
+
+      res.json({ success: true });
     }
   );
 });
@@ -49,6 +90,27 @@ app.get("/api/posts", (req, res) => {
 
 app.listen(3000, () => {
   console.log("Server running on port 3000");
+});
+
+// 投稿削除
+app.delete("/api/posts/:id", (req, res) => {
+  const { id } = req.params;
+
+  db.run(
+    "DELETE FROM posts WHERE id = ?",
+    [id],
+    function (err) {
+      if (err) {
+        return res.status(500).json({ error: err.message });
+      }
+
+      if (this.changes === 0) {
+        return res.status(404).json({ error: "投稿が見つかりません" });
+      }
+
+      res.json({ success: true });
+    }
+  );
 });
 
 process.env.NODE_ENV
