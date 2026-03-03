@@ -5,6 +5,7 @@ const sqlite3 = require("sqlite3").verbose();
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.set("trust proxy", true);
 
 // DB作成（ファイルがなければ自動生成）
 const db = new sqlite3.Database("./database.db");
@@ -52,6 +53,69 @@ db.serialize(() => {
       accessed_date TEXT
     ) 
   `);
+});
+
+// DB操作をPromise化
+function dbGet(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.get(sql, params, (err, row) => {
+      if (err) reject(err);
+      else resolve(row);
+    });
+  });
+}
+
+function dbRun(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function (err) {
+      if (err) reject(err);
+      else resolve(this);
+    });
+  });
+}
+
+// アクセス処理
+async function handleAccess(ip) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  const existing = await dbGet(
+    "SELECT * FROM access_log WHERE ip = ? AND accessed_date = ?",
+    [ip, today]
+  );
+
+  if (existing) {
+    return { alreadyCounted: true };
+  }
+
+  await dbRun(
+    "UPDATE counter SET count = count + 1 WHERE id = 1"
+  );
+
+  await dbRun(
+    "INSERT INTO access_log (ip, accessed_date) VALUES (?, ?)",
+    [ip, today]
+  );
+
+  return { counted: true };
+}
+
+function getClientIp(req) {
+  return (
+    req.headers["x-forwarded-for"]?.split(",")[0] ||
+    req.socket.remoteAddress
+  );
+}
+
+// アクセスカウンタのインクリメント
+app.post("/api/counter/increment", async (req, res) => {
+  try {
+    const ip = getClientIp(req);
+    const result = await handleAccess(ip);
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
 });
 
 // 投稿追加
@@ -141,41 +205,6 @@ app.delete("/api/posts/:id", (req, res) => {
       }
 
       res.json({ success: true });
-    }
-  );
-});
-
-//アクセス時にカウンタを増やす
-app.post("/api/counter/increment", (req, res) => {
-  const ip = req.ip;
-  const today = new Date().toISOString().slice(0, 10);
-
-  db.get(
-    "SELECT * FROM access_log WHERE ip = ? AND accessed_date = ?",
-    [ip, today],
-    (err, row) => {
-      if (err) return res.status(500).json(err);
-
-      if (row) {
-        // 既に今日カウント済み
-        return res.json({ alreadyCounted: true });
-      }
-
-      // 初アクセスなのでカウント増やす
-      db.run(
-        "UPDATE counter SET count = count + 1 WHERE id = 1",
-        [],
-        function (err) {
-          if (err) return res.status(500).json(err);
-
-          db.run(
-            "INSERT INTO access_log (ip, accessed_date) VALUES (?, ?)",
-            [ip, today]
-          );
-
-          res.json({ counted: true });
-        }
-      );
     }
   );
 });
