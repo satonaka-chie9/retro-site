@@ -7,6 +7,14 @@ const counterRoutes = require("./routes/counterRoutes");
 const app = express();
 
 app.use(cors());
+const path = require("path");
+
+app.use(express.static(path.join(__dirname, "../frontend")));
+
+const path = require("path");
+
+app.use(express.static(path.join(__dirname, "../frontend")));
+
 app.use(express.json());
 app.set("trust proxy", true);
 
@@ -16,7 +24,3 @@ app.use("/api/counter", counterRoutes);
 app.listen(3000, () => {
   console.log("Server running on port 3000");
 });
-
-const path = require("path");
-
-app.use(express.static(path.join(__dirname, "frontend")));
