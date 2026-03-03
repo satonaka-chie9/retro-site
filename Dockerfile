@@ -2,10 +2,12 @@ FROM node:18
 
 WORKDIR /app
 
-COPY package*.json ./
+# backendフォルダのpackage.jsonをコピー
+COPY backend/package*.json ./
 RUN npm install
 
-COPY . .
+# backendフォルダの中身を全部コピー
+COPY backend ./
 
 EXPOSE 3000
 
