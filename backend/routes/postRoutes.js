@@ -13,14 +13,14 @@ router.get("/", (req, res) => {
 // 投稿追加
 router.post("/", (req, res) => {
   const { name, content } = req.body;
-
-  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  const ip = req.ip;
 
   db.run(
     "INSERT INTO posts (name, content, ip) VALUES (?, ?, ?)",
     [name || "名無しさん", content, ip],
     function (err) {
       if (err) {
+        console.error(err); // ← ログ出す
         return res.status(500).json({ error: err.message });
       }
       res.json({ success: true });
