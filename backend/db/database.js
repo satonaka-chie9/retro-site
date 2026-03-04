@@ -3,16 +3,17 @@ const sqlite3 = require("sqlite3").verbose();
 const db = new sqlite3.Database("./database.db");
 
 db.serialize(() => {
-  db.run(`
+  
+   db.run(`
     CREATE TABLE IF NOT EXISTS posts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT DEFAULT '名無しさん',
-      content TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME
-      ip TEXT
-    )
-  `);
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    content TEXT,
+    ip TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME
+  )
+`);
 
   db.run(`
     CREATE TABLE IF NOT EXISTS counter (
