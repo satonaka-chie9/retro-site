@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:3000";
+const API_BASE = "";
 
 async function loadPosts() {
   const res = await fetch(API_BASE + "/api/posts");
