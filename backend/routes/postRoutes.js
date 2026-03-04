@@ -22,8 +22,8 @@ router.post("/", (req, res) => {
   const ip = getClientIp(req);
 
   db.run(
-    "INSERT INTO posts (name, content, ip) VALUES (?, ?, ?)",
-    [name || "名無しさん", content, ip],
+    "INSERT INTO posts (name, content, device_id) VALUES (?, ?, ?)",
+    [name || "名無しさん", content, device_id],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ success: true });
@@ -34,14 +34,13 @@ router.post("/", (req, res) => {
 // 投稿更新
 router.put("/:id", (req, res) => {
   const { id } = req.params;
-  const { name, content } = req.body;
-  const ip = getClientIp(req);
+  const { device_id } = req.body;
 
   db.get("SELECT ip FROM posts WHERE id = ?", [id], (err, row) => {
     if (err) return res.status(500).json({ error: err.message });
     if (!row) return res.status(404).json({ error: "投稿が見つかりません" });
 
-    if (row.ip !== ip) {
+    if (row.device_id !== device_id) {
       return res.status(403).json({ error: "他人の投稿は編集できません" });
     }
 

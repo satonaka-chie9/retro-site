@@ -12,6 +12,7 @@ db.serialize(() => {
     ip TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME
+    ALTER TABLE posts ADD COLUMN device_id TEXT;
   )
 `);
 
