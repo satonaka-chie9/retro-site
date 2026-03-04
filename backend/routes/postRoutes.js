@@ -57,28 +57,22 @@ router.put("/:id", (req, res) => {
 });
 
 // 投稿削除
-router.put("/:id", (req, res) => {
+router.delete("/:id", (req, res) => {
   const { id } = req.params;
-  const { name, content, device_id } = req.body;
+  const { device_id } = req.body;
 
   db.get("SELECT device_id FROM posts WHERE id = ?", [id], (err, row) => {
     if (err) return res.status(500).json({ error: err.message });
     if (!row) return res.status(404).json({ error: "投稿が見つかりません" });
 
     if (row.device_id !== device_id) {
-      return res.status(403).json({ error: "他人の投稿は編集できません" });
+      return res.status(403).json({ error: "他人の投稿は削除できません" });
     }
 
-    db.run(
-      `UPDATE posts
-       SET name = ?, content = ?, updated_at = CURRENT_TIMESTAMP
-       WHERE id = ?`,
-      [name || "名無しさん", content, id],
-      function (err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ success: true });
-      }
-    );
+    db.run("DELETE FROM posts WHERE id = ?", [id], function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true });
+    });
   });
 });
 
