@@ -28,7 +28,21 @@ async function handleAccess(ip) {
 
   if (existing) return { alreadyCounted: true };
 
-  await dbRun("UPDATE counter SET count = count + 1 WHERE id = 1");
+  // counter行がなければ作る
+  const counterRow = await dbGet(
+    "SELECT count FROM counter WHERE id = 1"
+  );
+
+  if (!counterRow) {
+    await dbRun(
+      "INSERT INTO counter (id, count) VALUES (1, 0)"
+    );
+  }
+
+  await dbRun(
+    "UPDATE counter SET count = count + 1 WHERE id = 1"
+  );
+
   await dbRun(
     "INSERT INTO access_log (ip, accessed_date) VALUES (?, ?)",
     [ip, today]
@@ -38,7 +52,10 @@ async function handleAccess(ip) {
 }
 
 async function getCounter() {
-  return await dbGet("SELECT count FROM counter WHERE id = 1");
+  const row = await dbGet(
+    "SELECT count FROM counter WHERE id = 1"
+  );
+  return row || { count: 0 };
 }
 
 module.exports = { handleAccess, getCounter };

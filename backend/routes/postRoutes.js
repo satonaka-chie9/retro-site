@@ -2,6 +2,12 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db/database");
 
+// IP取得を統一
+function getClientIp(req) {
+  return (req.headers["x-forwarded-for"]?.split(",")[0] || req.ip)
+    .replace("::ffff:", "");
+}
+
 // 投稿一覧
 router.get("/", (req, res) => {
   db.all("SELECT * FROM posts", [], (err, rows) => {
@@ -12,15 +18,13 @@ router.get("/", (req, res) => {
 
 // 投稿追加
 router.post("/", (req, res) => {
-  const { name, content } = req.body;
+  const { name, content, device_id } = req.body;
 
   db.run(
-    "INSERT INTO posts (name, content) VALUES (?, ?)",
-    [name || "名無しさん", content],
+    "INSERT INTO posts (name, content, device_id) VALUES (?, ?, ?)",
+    [name || "名無しさん", content, device_id],
     function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
+      if (err) return res.status(500).json({ error: err.message });
       res.json({ success: true });
     }
   );
@@ -29,46 +33,47 @@ router.post("/", (req, res) => {
 // 投稿更新
 router.put("/:id", (req, res) => {
   const { id } = req.params;
-  const { name, content } = req.body;
+  const { name, content, device_id } = req.body;
 
-  db.run(
-    `UPDATE posts
-     SET name = ?, content = ?, updated_at = CURRENT_TIMESTAMP
-     WHERE id = ?`,
-    [name || "名無しさん", content, id],
-    function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
+  db.get("SELECT device_id FROM posts WHERE id = ?", [id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: "投稿が見つかりません" });
 
-      if (this.changes === 0) {
-        return res.status(404).json({ error: "投稿が見つかりません" });
-      }
-
-      res.json({ success: true });
+    if (row.device_id !== device_id) {
+      return res.status(403).json({ error: "他人の投稿は編集できません" });
     }
-  );
+
+    db.run(
+      `UPDATE posts
+       SET name = ?, content = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [name || "名無しさん", content, id],
+      function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true });
+      }
+    );
+  });
 });
 
 // 投稿削除
 router.delete("/:id", (req, res) => {
   const { id } = req.params;
+  const { device_id } = req.body;
 
-  db.run(
-    "DELETE FROM posts WHERE id = ?",
-    [id],
-    function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
+  db.get("SELECT device_id FROM posts WHERE id = ?", [id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: "投稿が見つかりません" });
 
-      if (this.changes === 0) {
-        return res.status(404).json({ error: "投稿が見つかりません" });
-      }
-
-      res.json({ success: true });
+    if (row.device_id !== device_id) {
+      return res.status(403).json({ error: "他人の投稿は削除できません" });
     }
-  );
+
+    db.run("DELETE FROM posts WHERE id = ?", [id], function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true });
+    });
+  });
 });
 
 module.exports = router;

@@ -6,8 +6,10 @@ db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS posts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT DEFAULT '名無しさん',
-      content TEXT NOT NULL,
+      name TEXT,
+      content TEXT,
+      ip TEXT,
+      device_id TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME
     )

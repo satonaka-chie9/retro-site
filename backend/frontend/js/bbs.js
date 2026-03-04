@@ -1,5 +1,16 @@
 const API_BASE = "";
 
+function getDeviceId() {
+  let deviceId = localStorage.getItem("device_id");
+
+  if (!deviceId) {
+    deviceId = crypto.randomUUID();
+    localStorage.setItem("device_id", deviceId);
+  }
+
+  return deviceId;
+}
+
 async function loadPosts() {
   const res = await fetch(API_BASE + "/api/posts");
   const data = await res.json();
@@ -55,7 +66,11 @@ document.getElementById("postForm").addEventListener("submit", async (e) => {
   await fetch(API_BASE + "/api/posts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, content })
+    body: JSON.stringify({
+      name,
+      content,
+      device_id: getDeviceId()
+    })
   });
 
   document.getElementById("message").value = "";
@@ -73,7 +88,8 @@ async function editPost(id, currentContent) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       name: "名無しさん",
-      content: newContent
+      content: newContent,
+      device_id: getDeviceId()
     })
   });
 
@@ -84,8 +100,12 @@ async function deletePost(id) {
   if (!confirm("本当に削除しますか？")) return;
 
   await fetch(API_BASE + "/api/posts/" + id, {
-    method: "DELETE"
-  });
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+    device_id: getDeviceId()
+  })
+});
 
   loadPosts();
 }
@@ -104,3 +124,5 @@ async function updateCounter() {
 }
 
 updateCounter();
+
+setInterval(loadPosts, 3000);
