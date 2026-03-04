@@ -14,9 +14,11 @@ router.get("/", (req, res) => {
 router.post("/", (req, res) => {
   const { name, content } = req.body;
 
+  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+
   db.run(
-    "INSERT INTO posts (name, content) VALUES (?, ?)",
-    [name || "名無しさん", content],
+    "INSERT INTO posts (name, content, ip) VALUES (?, ?, ?)",
+    [name || "名無しさん", content, ip],
     function (err) {
       if (err) {
         return res.status(500).json({ error: err.message });
@@ -27,24 +29,18 @@ router.post("/", (req, res) => {
 });
 
 // 投稿更新
-router.put("/:id", (req, res) => {
-  const { id } = req.params;
+router.post("/", (req, res) => {
   const { name, content } = req.body;
 
+  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+
   db.run(
-    `UPDATE posts
-     SET name = ?, content = ?, updated_at = CURRENT_TIMESTAMP
-     WHERE id = ?`,
-    [name || "名無しさん", content, id],
+    "INSERT INTO posts (name, content, ip) VALUES (?, ?, ?)",
+    [name || "名無しさん", content, ip],
     function (err) {
       if (err) {
         return res.status(500).json({ error: err.message });
       }
-
-      if (this.changes === 0) {
-        return res.status(404).json({ error: "投稿が見つかりません" });
-      }
-
       res.json({ success: true });
     }
   );
@@ -54,21 +50,21 @@ router.put("/:id", (req, res) => {
 router.delete("/:id", (req, res) => {
   const { id } = req.params;
 
-  db.run(
-    "DELETE FROM posts WHERE id = ?",
-    [id],
-    function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
+  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
 
-      if (this.changes === 0) {
-        return res.status(404).json({ error: "投稿が見つかりません" });
-      }
+  db.get("SELECT ip FROM posts WHERE id = ?", [id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!row) return res.status(404).json({ error: "投稿が見つかりません" });
 
-      res.json({ success: true });
+    if (row.ip !== ip) {
+      return res.status(403).json({ error: "他人の投稿は削除できません" });
     }
-  );
+
+    db.run("DELETE FROM posts WHERE id = ?", [id], function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true });
+    });
+  });
 });
 
 module.exports = router;

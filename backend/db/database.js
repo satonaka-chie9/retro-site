@@ -10,6 +10,7 @@ db.serialize(() => {
       content TEXT NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME
+      ip TEXT
     )
   `);
 
