@@ -32,18 +32,20 @@ router.post("/", (req, res) => {
 router.post("/", (req, res) => {
   const { name, content } = req.body;
 
-  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  const rawIp = req.ip;
+  const ip = rawIp.replace("::ffff:", "");
 
-  db.run(
-    "INSERT INTO posts (name, content, ip) VALUES (?, ?, ?)",
-    [name || "名無しさん", content, ip],
-    function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      res.json({ success: true });
+  db.get("SELECT ip FROM posts WHERE id = ?", [id], (err, row) => {
+    if (!row) return res.status(404).json({ error: "投稿が見つかりません" });
+
+    const savedIp = (row.ip || "").replace("::ffff:", "");
+
+    if (savedIp !== ip) {
+      return res.status(403).json({ error: "他人の投稿は編集できません" });
     }
-  );
+
+    // UPDATE処理
+  });
 });
 
 // 投稿削除
