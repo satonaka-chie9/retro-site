@@ -18,8 +18,7 @@ router.get("/", (req, res) => {
 
 // 投稿追加
 router.post("/", (req, res) => {
-  const { name, content } = req.body;
-  const ip = getClientIp(req);
+  const { name, content, device_id } = req.body;
 
   db.run(
     "INSERT INTO posts (name, content, device_id) VALUES (?, ?, ?)",
@@ -34,7 +33,7 @@ router.post("/", (req, res) => {
 // 投稿更新
 router.put("/:id", (req, res) => {
   const { id } = req.params;
-  const { device_id } = req.body;
+  const { name, content, device_id } = req.body;
 
   db.get("SELECT ip FROM posts WHERE id = ?", [id], (err, row) => {
     if (err) return res.status(500).json({ error: err.message });
@@ -60,7 +59,7 @@ router.put("/:id", (req, res) => {
 // 投稿削除
 router.delete("/:id", (req, res) => {
   const { id } = req.params;
-  const ip = getClientIp(req);
+  const { device_id } = req.body;
 
   db.get("SELECT ip FROM posts WHERE id = ?", [id], (err, row) => {
     if (err) return res.status(500).json({ error: err.message });
