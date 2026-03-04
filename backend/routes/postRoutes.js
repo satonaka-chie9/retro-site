@@ -2,6 +2,12 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db/database");
 
+// IP取得を統一
+function getClientIp(req) {
+  return (req.headers["x-forwarded-for"]?.split(",")[0] || req.ip)
+    .replace("::ffff:", "");
+}
+
 // 投稿一覧
 router.get("/", (req, res) => {
   db.all("SELECT * FROM posts", [], (err, rows) => {
@@ -13,46 +19,49 @@ router.get("/", (req, res) => {
 // 投稿追加
 router.post("/", (req, res) => {
   const { name, content } = req.body;
-  const ip = req.ip;
+  const ip = getClientIp(req);
 
   db.run(
     "INSERT INTO posts (name, content, ip) VALUES (?, ?, ?)",
     [name || "名無しさん", content, ip],
     function (err) {
-      if (err) {
-        console.error(err); // ← ログ出す
-        return res.status(500).json({ error: err.message });
-      }
+      if (err) return res.status(500).json({ error: err.message });
       res.json({ success: true });
     }
   );
 });
 
 // 投稿更新
-router.post("/", (req, res) => {
+router.put("/:id", (req, res) => {
+  const { id } = req.params;
   const { name, content } = req.body;
-
-  const rawIp = req.ip;
-  const ip = rawIp.replace("::ffff:", "");
+  const ip = getClientIp(req);
 
   db.get("SELECT ip FROM posts WHERE id = ?", [id], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
     if (!row) return res.status(404).json({ error: "投稿が見つかりません" });
 
-    const savedIp = (row.ip || "").replace("::ffff:", "");
-
-    if (savedIp !== ip) {
+    if (row.ip !== ip) {
       return res.status(403).json({ error: "他人の投稿は編集できません" });
     }
 
-    // UPDATE処理
+    db.run(
+      `UPDATE posts
+       SET name = ?, content = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ?`,
+      [name || "名無しさん", content, id],
+      function (err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true });
+      }
+    );
   });
 });
 
 // 投稿削除
 router.delete("/:id", (req, res) => {
   const { id } = req.params;
-
-  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  const ip = getClientIp(req);
 
   db.get("SELECT ip FROM posts WHERE id = ?", [id], (err, row) => {
     if (err) return res.status(500).json({ error: err.message });
