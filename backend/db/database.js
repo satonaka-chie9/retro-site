@@ -2,7 +2,7 @@ const sqlite3 = require("sqlite3").verbose();
 
 const db = new sqlite3.Database("./database.db");
 
-ddb.serialize(() => {
+db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS posts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -14,7 +14,7 @@ ddb.serialize(() => {
       updated_at DATETIME
     )
   `);
-  
+
   db.run(`
     CREATE TABLE IF NOT EXISTS counter (
       id INTEGER PRIMARY KEY,
