@@ -12,11 +12,7 @@ app.use(express.json());
 app.set("trust proxy", true);
 
 // 静的ファイル配信
-app.use(express.static(path.resolve(__dirname, "../frontend")));
-
-app.get("/", (req, res) => {
-  res.sendFile(path.resolve(__dirname, "../frontend/index.html"));
-});
+app.use(express.static(path.resolve(__dirname, "frontend")));
 
 // API
 app.use("/api/posts", postRoutes);
