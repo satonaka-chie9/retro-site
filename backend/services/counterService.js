@@ -28,7 +28,7 @@ async function handleAccess(ip) {
 
   if (existing) return { alreadyCounted: true };
 
-  // ★ まずcounter行が存在するか確認
+  // counter行がなければ作る
   const counterRow = await dbGet(
     "SELECT count FROM counter WHERE id = 1"
   );
@@ -49,6 +49,13 @@ async function handleAccess(ip) {
   );
 
   return { counted: true };
+}
+
+async function getCounter() {
+  const row = await dbGet(
+    "SELECT count FROM counter WHERE id = 1"
+  );
+  return row || { count: 0 };
 }
 
 module.exports = { handleAccess, getCounter };
