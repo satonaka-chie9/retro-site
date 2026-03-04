@@ -2,20 +2,19 @@ const sqlite3 = require("sqlite3").verbose();
 
 const db = new sqlite3.Database("./database.db");
 
-db.serialize(() => {
-  
-   db.run(`
+ddb.serialize(() => {
+  db.run(`
     CREATE TABLE IF NOT EXISTS posts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT,
-    content TEXT,
-    ip TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME
-    ALTER TABLE posts ADD COLUMN device_id TEXT;
-  )
-`);
-
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      content TEXT,
+      ip TEXT,
+      device_id TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME
+    )
+  `);
+  
   db.run(`
     CREATE TABLE IF NOT EXISTS counter (
       id INTEGER PRIMARY KEY,
