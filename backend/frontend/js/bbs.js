@@ -124,3 +124,5 @@ async function updateCounter() {
 }
 
 updateCounter();
+
+setInterval(loadPosts, 3000);
