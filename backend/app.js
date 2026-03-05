@@ -33,6 +33,18 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("draw", data);
   });
 
+  socket.on("drawStart", data => {
+  socket.broadcast.emit("drawStart", data);
+  });
+
+  socket.on("drawing", data => {
+  socket.broadcast.emit("drawing", data);
+  });
+
+  socket.on("drawEnd", () => {
+  socket.broadcast.emit("drawEnd");
+  });
+
   // ★ チャット追加
   socket.on("chat", (data) => {
     io.emit("chat", data);

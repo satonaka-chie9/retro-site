@@ -2,54 +2,96 @@ const socket = io("https://retro-site-test-echa.onrender.com", {
   transports: ["websocket"]
 });
 
-/* ====== Fabric描画 ====== */
-const canvas = new fabric.Canvas('c', {
-  isDrawingMode: true
-});
+const canvas = new fabric.Canvas('c');
+canvas.isDrawingMode = false;
 
-canvas.renderOnAddRemove = false;
-
-canvas.freeDrawingBrush.width = 3;
-canvas.freeDrawingBrush.color = "#000000";
+let isDrawing = false;
+let currentPath = null;
+let brushColor = "#000000";
+let brushSize = 3;
 
 document.getElementById("colorPicker").addEventListener("change", e => {
-  canvas.freeDrawingBrush.color = e.target.value;
+  brushColor = e.target.value;
 });
 
 document.getElementById("brushSize").addEventListener("input", e => {
-  canvas.freeDrawingBrush.width = parseInt(e.target.value);
+  brushSize = parseInt(e.target.value);
 });
 
-canvas.on("path:created", function(opt) {
-  const path = opt.path;
+/* ====== 自分が描く ====== */
 
-  const data = path.toObject([
-    'path',
-    'fill',
-    'stroke',
-    'strokeWidth',
-    'strokeLineCap',
-    'strokeLineJoin'
-  ]);
+canvas.on("mouse:down", function(opt) {
+  isDrawing = true;
 
-  socket.emit("draw", data);
+  const pointer = canvas.getPointer(opt.e);
 
-  // ← ここ追加：自分の線を一旦消す
-  canvas.remove(path);
-});
-
-socket.on("draw", function(data) {
-
-  fabric.util.enlivenObjects([data], function(objects) {
-    objects.forEach(obj => {
-      canvas.add(obj);
-    });
-    canvas.requestRenderAll();
+  currentPath = new fabric.Path(`M ${pointer.x} ${pointer.y}`, {
+    stroke: brushColor,
+    strokeWidth: brushSize,
+    fill: null,
+    strokeLineCap: 'round',
+    strokeLineJoin: 'round'
   });
 
+  canvas.add(currentPath);
+
+  socket.emit("drawStart", {
+    x: pointer.x,
+    y: pointer.y,
+    color: brushColor,
+    size: brushSize
+  });
+});
+
+canvas.on("mouse:move", function(opt) {
+  if (!isDrawing) return;
+
+  const pointer = canvas.getPointer(opt.e);
+
+  currentPath.path.push(['L', pointer.x, pointer.y]);
+  canvas.requestRenderAll();
+
+  socket.emit("drawing", {
+    x: pointer.x,
+    y: pointer.y
+  });
+});
+
+canvas.on("mouse:up", function() {
+  isDrawing = false;
+  currentPath = null;
+  socket.emit("drawEnd");
+});
+
+/* ====== 他人の描画を受信 ====== */
+
+let remotePath = null;
+
+socket.on("drawStart", data => {
+  remotePath = new fabric.Path(`M ${data.x} ${data.y}`, {
+    stroke: data.color,
+    strokeWidth: data.size,
+    fill: null,
+    strokeLineCap: 'round',
+    strokeLineJoin: 'round'
+  });
+
+  canvas.add(remotePath);
+});
+
+socket.on("drawing", data => {
+  if (!remotePath) return;
+
+  remotePath.path.push(['L', data.x, data.y]);
+  canvas.requestRenderAll();
+});
+
+socket.on("drawEnd", () => {
+  remotePath = null;
 });
 
 /* ====== チャット ====== */
+
 const chatMessages = document.getElementById("chat_messages");
 
 document.getElementById("chatForm").addEventListener("submit", function(e){
