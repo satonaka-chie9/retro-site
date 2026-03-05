@@ -1,5 +1,6 @@
-const socket = io("https://retro-site-test-echa.onrender.com", {
-  transports: ["websocket"]
+// 動的なSocket URL（ローカルと本番両方に対応）
+const socket = io(window.location.host, {
+  transports: ["websocket", "polling"]
 });
 
 const canvas = new fabric.Canvas('c');
