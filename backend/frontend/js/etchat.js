@@ -7,6 +7,8 @@ const canvas = new fabric.Canvas('c', {
   isDrawingMode: true
 });
 
+canvas.renderOnAddRemove = false;
+
 canvas.freeDrawingBrush.width = 3;
 canvas.freeDrawingBrush.color = "#000000";
 
@@ -19,8 +21,19 @@ document.getElementById("brushSize").addEventListener("input", e => {
 });
 
 canvas.on("path:created", function(opt) {
-  const data = opt.path.toJSON();  // ← ここ変更
+  const path = opt.path;
+
+  const data = path.toObject([
+    'path',
+    'fill',
+    'stroke',
+    'strokeWidth',
+    'strokeLineCap',
+    'strokeLineJoin'
+  ]);
+
   data.sender = socket.id;
+
   socket.emit("draw", data);
 });
 
@@ -31,7 +44,7 @@ socket.on("draw", function(data) {
     objects.forEach(obj => {
       canvas.add(obj);
     });
-    canvas.requestRenderAll();
+    canvas.requestRenderAll(); // ←これが超重要
   });
 });
 
