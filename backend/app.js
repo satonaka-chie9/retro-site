@@ -11,8 +11,8 @@ app.use(express.json());
 // 既存のルート
 const counterRoutes = require("./routes/counterRoutes");
 const postRoutes = require("./routes/postRoutes");
-app.use("/api", counterRoutes);
-app.use("/api", postRoutes);
+app.use("/api/counter", counterRoutes);
+app.use("/api/posts", postRoutes);
 
 // 静的ファイルの提供
 const path = require("path");
