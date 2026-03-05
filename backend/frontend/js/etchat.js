@@ -17,7 +17,7 @@ document.getElementById("brushSize").addEventListener("input", e => {
 });
 
 canvas.on("path:created", function(opt) {
-  const data = opt.path.toObject();
+  const data = opt.path.toJSON();  // ← ここ変更
   data.sender = socket.id;
   socket.emit("draw", data);
 });
@@ -25,8 +25,8 @@ canvas.on("path:created", function(opt) {
 socket.on("draw", function(data) {
   if (data.sender === socket.id) return;
 
-  fabric.Path.fromObject(data, function(path) {
-    canvas.add(path);
+  fabric.util.enlivenObjects([data], function(objects) {
+    objects.forEach(obj => canvas.add(obj));
   });
 });
 

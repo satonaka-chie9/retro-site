@@ -28,12 +28,14 @@ app.use(express.static(path.join(__dirname, "frontend")));
 io.on("connection", (socket) => {
   console.log("ユーザー接続:", socket.id);
 
+  // 描画
   socket.on("draw", (data) => {
     socket.broadcast.emit("draw", data);
   });
 
-  socket.on("drawEnd", () => {
-    socket.broadcast.emit("drawEnd");
+  // ★ チャット追加
+  socket.on("chat", (data) => {
+    io.emit("chat", data);
   });
 
   socket.on("disconnect", () => {
