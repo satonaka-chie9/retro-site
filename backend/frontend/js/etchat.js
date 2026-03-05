@@ -3,10 +3,31 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 
 let drawing = false;
+let lastX = 0;
+let lastY = 0;
 
-canvas.addEventListener("mousedown", () => drawing = true);
-canvas.addEventListener("mouseup", () => drawing = false);
-canvas.addEventListener("mouseout", () => drawing = false);
+// 線の設定
+ctx.lineWidth = 2;
+ctx.lineCap = "round";
+ctx.lineJoin = "round";
+ctx.strokeStyle = "black";
+
+canvas.addEventListener("mousedown", (e) => {
+  drawing = true;
+  const rect = canvas.getBoundingClientRect();
+  lastX = e.clientX - rect.left;
+  lastY = e.clientY - rect.top;
+});
+
+canvas.addEventListener("mouseup", () => {
+  drawing = false;
+  socket.emit("drawEnd");
+});
+
+canvas.addEventListener("mouseout", () => {
+  drawing = false;
+  socket.emit("drawEnd");
+});
 
 canvas.addEventListener("mousemove", (e) => {
   if (!drawing) return;
@@ -15,14 +36,26 @@ canvas.addEventListener("mousemove", (e) => {
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
 
-  draw(x, y);
-  socket.emit("draw", { x, y });
+  // ローカルで描画
+  ctx.beginPath();
+  ctx.moveTo(lastX, lastY);
+  ctx.lineTo(x, y);
+  ctx.stroke();
+
+  // 他のクライアントに送信
+  socket.emit("draw", { x0: lastX, y0: lastY, x1: x, y1: y });
+
+  lastX = x;
+  lastY = y;
 });
 
 socket.on("draw", (data) => {
-  draw(data.x, data.y);
+  ctx.beginPath();
+  ctx.moveTo(data.x0, data.y0);
+  ctx.lineTo(data.x1, data.y1);
+  ctx.stroke();
 });
 
-function draw(x, y) {
-  ctx.fillRect(x, y, 2, 2);
-}
+socket.on("drawEnd", () => {
+  // リモートクライアントの描画終了
+});
