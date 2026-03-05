@@ -55,15 +55,12 @@
     padding: 0 55px 0 0;
     position: relative;
 
-    float: right; /* なぜかChrome55でずれるので対策 */
+    float:right; /* なぜかChrome55でずれるので対策 */
 }
 
 .NEO #upper {
-    position: absolute;
-    right: 0;
-
     height:30px;
-    padding-right: 75px; //20px;
+    padding-right: 20px;
     text-align:right;
 }
 
@@ -74,8 +71,6 @@
 .NEO #painter {
     position: relative;
     padding: 20px 20px 20px 20px;
-
-    margin-top: 30px;
 }
 
 .NEO #canvas {
@@ -97,7 +92,6 @@
     left: 5px;
 }
 
-.NEO #window { float: left; }
 
 /*
 -----------------------
@@ -250,8 +244,6 @@
     font-smoothing: antialiased;
     margin: 1px;
 }
-
-.NEO #right { display: inline-block; float: right; margin-left: 10px; }
 
 .NEO .toolTipOff,
 .NEO .toolTipFixed {
@@ -544,4 +536,3 @@
     outline: 1px solid #b1d6fd;
     border: 1px solid #b1d6fd;
 }
-
