@@ -32,20 +32,21 @@ canvas.on("path:created", function(opt) {
     'strokeLineJoin'
   ]);
 
-  data.sender = socket.id;
-
   socket.emit("draw", data);
+
+  // ← ここ追加：自分の線を一旦消す
+  canvas.remove(path);
 });
 
 socket.on("draw", function(data) {
-  if (data.sender === socket.id) return;
 
   fabric.util.enlivenObjects([data], function(objects) {
     objects.forEach(obj => {
       canvas.add(obj);
     });
-    canvas.requestRenderAll(); // ←これが超重要
+    canvas.requestRenderAll();
   });
+
 });
 
 /* ====== チャット ====== */
