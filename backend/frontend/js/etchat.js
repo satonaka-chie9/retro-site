@@ -1,4 +1,6 @@
-const socket = io();
+const socket = io("https://retro-site-test-echa.onrender.com", {
+  transports: ["websocket"]
+});
 
 /* ====== Fabric描画 ====== */
 const canvas = new fabric.Canvas('c', {
