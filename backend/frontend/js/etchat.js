@@ -26,7 +26,10 @@ socket.on("draw", function(data) {
   if (data.sender === socket.id) return;
 
   fabric.util.enlivenObjects([data], function(objects) {
-    objects.forEach(obj => canvas.add(obj));
+    objects.forEach(obj => {
+      canvas.add(obj);
+    });
+    canvas.requestRenderAll();
   });
 });
 
