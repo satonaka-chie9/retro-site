@@ -1,24 +1,37 @@
 const express = require("express");
-const cors = require("cors");
-const path = require("path");
-
-const postRoutes = require("./routes/postRoutes");
-const counterRoutes = require("./routes/counterRoutes");
+const http = require("http");
+const { Server } = require("socket.io");
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
-app.use(cors());
 app.use(express.json());
-app.set("trust proxy", true);
 
-// 静的ファイル配信
-app.use(express.static(path.resolve(__dirname, "frontend")));
+const path = require("path");
 
-// API
-app.use("/api/posts", postRoutes);
-app.use("/api/counter", counterRoutes);
+app.use(express.static(path.join(__dirname, "frontend")));
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// 既存のルート
+const counterRoutes = require("./routes/counterRoutes");
+const postRoutes = require("./routes/postRoutes");
+app.use("/api", counterRoutes);
+app.use("/api", postRoutes);
+
+// ===== 絵茶ソケット =====
+io.on("connection", (socket) => {
+  console.log("ユーザー接続:", socket.id);
+
+  socket.on("draw", (data) => {
+    socket.broadcast.emit("draw", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("切断:", socket.id);
+  });
+});
+
+// server.listen に変更
+server.listen(3000, () => {
+  console.log("Server running on port 3000");
 });
