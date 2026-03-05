@@ -3,7 +3,6 @@ const socket = io("https://retro-site-test-echa.onrender.com", {
 });
 
 const canvas = new fabric.Canvas('c');
-canvas.isDrawingMode = false;
 
 let isDrawing = false;
 let currentPath = null;
@@ -18,14 +17,15 @@ document.getElementById("brushSize").addEventListener("input", e => {
   brushSize = parseInt(e.target.value);
 });
 
-/* ====== 自分が描く ====== */
+/* ===== 自分の描画 ===== */
 
 canvas.on("mouse:down", function(opt) {
   isDrawing = true;
-
   const pointer = canvas.getPointer(opt.e);
 
-  currentPath = new fabric.Path(`M ${pointer.x} ${pointer.y}`, {
+  currentPath = new fabric.Path([
+    ['M', pointer.x, pointer.y]
+  ], {
     stroke: brushColor,
     strokeWidth: brushSize,
     fill: null,
@@ -44,7 +44,7 @@ canvas.on("mouse:down", function(opt) {
 });
 
 canvas.on("mouse:move", function(opt) {
-  if (!isDrawing) return;
+  if (!isDrawing || !currentPath) return;
 
   const pointer = canvas.getPointer(opt.e);
 
@@ -63,12 +63,14 @@ canvas.on("mouse:up", function() {
   socket.emit("drawEnd");
 });
 
-/* ====== 他人の描画を受信 ====== */
+/* ===== 他人の描画 ===== */
 
 let remotePath = null;
 
 socket.on("drawStart", data => {
-  remotePath = new fabric.Path(`M ${data.x} ${data.y}`, {
+  remotePath = new fabric.Path([
+    ['M', data.x, data.y]
+  ], {
     stroke: data.color,
     strokeWidth: data.size,
     fill: null,
@@ -88,25 +90,4 @@ socket.on("drawing", data => {
 
 socket.on("drawEnd", () => {
   remotePath = null;
-});
-
-/* ====== チャット ====== */
-
-const chatMessages = document.getElementById("chat_messages");
-
-document.getElementById("chatForm").addEventListener("submit", function(e){
-  e.preventDefault();
-
-  const name = document.getElementById("chatName").value;
-  const message = document.getElementById("chatInput").value;
-
-  socket.emit("chat", { name, message });
-  document.getElementById("chatInput").value = "";
-});
-
-socket.on("chat", function(data){
-  const div = document.createElement("div");
-  div.textContent = `${data.name}：${data.message}`;
-  chatMessages.appendChild(div);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
 });
