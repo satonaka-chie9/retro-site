@@ -19,10 +19,11 @@ router.get("/", (req, res) => {
 // 投稿追加
 router.post("/", (req, res) => {
   const { name, content, device_id } = req.body;
+  const ip = getClientIp(req);
 
   db.run(
-    "INSERT INTO posts (name, content, device_id) VALUES (?, ?, ?)",
-    [name || "名無しさん", content, device_id],
+    "INSERT INTO posts (name, content, device_id, ip) VALUES (?, ?, ?, ?)",
+    [name || "名無しさん", content, device_id, ip],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
       res.json({ success: true });

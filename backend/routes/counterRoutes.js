@@ -15,6 +15,7 @@ router.post("/increment", async (req, res) => {
     const result = await handleAccess(ip);
     res.json(result);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
@@ -24,6 +25,7 @@ router.get("/", async (req, res) => {
     const data = await getCounter();
     res.json(data);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
