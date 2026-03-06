@@ -31,7 +31,9 @@ canvas.on("mouse:down", function(opt) {
     strokeWidth: brushSize,
     fill: null,
     strokeLineCap: 'round',
-    strokeLineJoin: 'round'
+    strokeLineJoin: 'round',
+    selectable: false,
+    evented: false
   });
 
   canvas.add(currentPath);
@@ -64,31 +66,69 @@ canvas.on("mouse:up", function() {
   socket.emit("drawEnd");
 });
 
-/* ===== 他人の描画 ===== */
+/* ===== 他人の描画 (複数人対応) ===== */
 
-let remotePath = null;
+const remotePaths = new Map();
 
 socket.on("drawStart", data => {
-  remotePath = new fabric.Path([
+  const p = new fabric.Path([
     ['M', data.x, data.y]
   ], {
     stroke: data.color,
     strokeWidth: data.size,
     fill: null,
     strokeLineCap: 'round',
-    strokeLineJoin: 'round'
+    strokeLineJoin: 'round',
+    selectable: false,
+    evented: false
   });
-
-  canvas.add(remotePath);
+  canvas.add(p);
+  remotePaths.set(data.id, p);
 });
 
 socket.on("drawing", data => {
-  if (!remotePath) return;
+  const p = remotePaths.get(data.id);
+  if (!p) return;
 
-  remotePath.path.push(['L', data.x, data.y]);
+  p.path.push(['L', data.x, data.y]);
   canvas.requestRenderAll();
 });
 
-socket.on("drawEnd", () => {
-  remotePath = null;
+socket.on("drawEnd", data => {
+  remotePaths.delete(data.id);
 });
+
+/* ===== チャット機能 ===== */
+
+const chatForm = document.getElementById("chatForm");
+const chatInput = document.getElementById("chatInput");
+const chatName = document.getElementById("chatName");
+const chatMessages = document.getElementById("chat_messages");
+
+chatForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const name = chatName.value || "名無しさん";
+  const message = chatInput.value;
+  if (message) {
+    socket.emit("chat", { name, message });
+    chatInput.value = "";
+  }
+});
+
+socket.on("chat", (data) => {
+  const msgDiv = document.createElement("div");
+  msgDiv.className = "chat_message_item";
+  msgDiv.innerHTML = `<strong>${data.name}</strong>: ${data.message}`;
+  chatMessages.appendChild(msgDiv);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+});
+
+/* ===== アクセスカウンタ ===== */
+
+async function updateCounter() {
+  const res = await fetch("/api/counter");
+  const data = await res.json();
+  document.getElementById("counter").innerText =
+    String(data.count).padStart(4, "0");
+}
+updateCounter();
