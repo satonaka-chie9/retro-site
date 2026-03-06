@@ -21,12 +21,23 @@ app.use("/api/posts", postRoutes);
 
 // 静的ファイルの提供
 const path = require("path");
+const fs = require("fs");
 
 app.use(express.static(path.join(__dirname, "frontend")));
 
+// ログ記録関数
+function logChat(filename, message) {
+  const logDir = path.join(__dirname, "log");
+  if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
+  const logPath = path.join(logDir, filename);
+  const timestamp = new Date().toLocaleString("ja-JP");
+  fs.appendFileSync(logPath, `[${timestamp}] ${message}\n`);
+}
+
 // ===== 絵茶ソケット =====
 io.on("connection", (socket) => {
-  console.log("ユーザー接続:", socket.id);
+  const ip = socket.handshake.headers["x-forwarded-for"]?.split(",")[0] || socket.handshake.address.replace("::ffff:", "");
+  console.log("ユーザー接続:", socket.id, "IP:", ip);
 
   // 描画
   socket.on("drawing", (data) => {
@@ -40,6 +51,8 @@ io.on("connection", (socket) => {
   // ★ チャット追加
   socket.on("chat", (data) => {
     io.emit("chat", data);
+    // ログに追記
+    logChat("etchat.log", `IP:${ip} | NAME:${data.name} | MSG:${data.message}`);
   });
 
   socket.on("disconnect", () => {

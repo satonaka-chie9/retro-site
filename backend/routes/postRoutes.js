@@ -16,6 +16,18 @@ router.get("/", (req, res) => {
   });
 });
 
+const fs = require("fs");
+const path = require("path");
+
+// ログ記録関数
+function logMessage(filename, message) {
+  const logDir = path.join(__dirname, "..", "log");
+  if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
+  const logPath = path.join(logDir, filename);
+  const timestamp = new Date().toLocaleString("ja-JP");
+  fs.appendFileSync(logPath, `[${timestamp}] ${message}\n`);
+}
+
 // 投稿追加
 router.post("/", (req, res) => {
   const { name, content, device_id } = req.body;
@@ -26,6 +38,10 @@ router.post("/", (req, res) => {
     [name || "名無しさん", content, device_id, ip],
     function (err) {
       if (err) return res.status(500).json({ error: err.message });
+      
+      // ログに追記
+      logMessage("bbs.log", `IP:${ip} | NAME:${name || "名無しさん"} | CONTENT:${content}`);
+      
       res.json({ success: true });
     }
   );
