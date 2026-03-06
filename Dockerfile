@@ -1,14 +1,19 @@
-FROM node:18
+FROM node:18-alpine
 
 WORKDIR /app
 
-# backendフォルダのpackage.jsonをコピー
+# backendフォルダのpackage.jsonをコピーしてインストール
 COPY backend/package*.json ./
 RUN npm install
 
-# backendフォルダの中身を全部コピー
-COPY backend ./
+# backendフォルダの内容をコピー
+COPY backend/ ./
 
+# データ保存用ディレクトリの作成
+RUN mkdir -p /app/data
+
+# ポート3000を開放
 EXPOSE 3000
 
+# 実行
 CMD ["node", "app.js"]

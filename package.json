@@ -1,4 +1,11 @@
 {
+  "name": "retro-site-root",
+  "version": "1.0.0",
+  "description": "Retro site with BBS and Etchat",
+  "scripts": {
+    "start": "cd backend && node app.js",
+    "dev": "docker-compose up"
+  },
   "dependencies": {
     "express-validator": "^7.3.1"
   }
