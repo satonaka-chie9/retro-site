@@ -25,6 +25,8 @@ const path = require("path");
 app.use(express.static(path.join(__dirname, "frontend")));
 
 // ===== 絵茶ソケット =====
+const chatRateLimits = new Map();
+
 io.on("connection", (socket) => {
   console.log("ユーザー接続:", socket.id);
 
@@ -37,13 +39,34 @@ io.on("connection", (socket) => {
     io.emit("clearCanvas");
   });
 
-  // ★ チャット追加
+  // ★ チャット追加 (レート制限付き)
   socket.on("chat", (data) => {
+    const now = Date.now();
+    const limitWindow = 30 * 1000; // 30秒
+    const maxMessages = 10;
+
+    if (!chatRateLimits.has(socket.id)) {
+      chatRateLimits.set(socket.id, []);
+    }
+
+    const timestamps = chatRateLimits.get(socket.id);
+    // 古いタイムスタンプを削除
+    const validTimestamps = timestamps.filter(ts => now - ts < limitWindow);
+    
+    if (validTimestamps.length >= maxMessages) {
+      socket.emit("chat_error", { message: "チャットの送信が速すぎます。少し待ってください。" });
+      return;
+    }
+
+    validTimestamps.push(now);
+    chatRateLimits.set(socket.id, validTimestamps);
+
     io.emit("chat", data);
   });
 
   socket.on("disconnect", () => {
     console.log("切断:", socket.id);
+    chatRateLimits.delete(socket.id);
   });
 });
 

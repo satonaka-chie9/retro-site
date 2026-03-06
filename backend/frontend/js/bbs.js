@@ -63,7 +63,7 @@ document.getElementById("postForm").addEventListener("submit", async (e) => {
   const name = document.getElementById("name").value;
   const content = document.getElementById("message").value;
 
-  await fetch(API_BASE + "/api/posts", {
+  const res = await fetch(API_BASE + "/api/posts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -72,6 +72,12 @@ document.getElementById("postForm").addEventListener("submit", async (e) => {
       device_id: getDeviceId()
     })
   });
+
+  if (!res.ok) {
+    const errorData = await res.json();
+    alert(errorData.error || "投稿に失敗しました。");
+    return;
+  }
 
   document.getElementById("message").value = "";
   loadPosts();

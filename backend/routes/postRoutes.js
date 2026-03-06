@@ -1,6 +1,17 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db/database");
+const rateLimit = require("express-rate-limit");
+
+// 投稿用レート制限: 1分間に5回まで
+const postLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5,
+  message: { error: "投稿が多すぎます。少し時間を置いてから再度お試しください。" },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => getClientIp(req), // IP取得関数をキーとして使用
+});
 
 // IP取得を統一
 function getClientIp(req) {
@@ -17,7 +28,7 @@ router.get("/", (req, res) => {
 });
 
 // 投稿追加
-router.post("/", (req, res) => {
+router.post("/", postLimiter, (req, res) => {
   const { name, content, device_id } = req.body;
   const ip = getClientIp(req);
 
