@@ -1,101 +1,89 @@
-// 動的なSocket URL（ローカルと本番両方に対応）
-const socket = io(window.location.host, {
-  transports: ["websocket", "polling"]
-});
+// Socket.io の接続（引数なしで自動的に同じホストに接続）
+const socket = io();
 
-const canvas = new fabric.Canvas('c');
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
 
-let isDrawing = false;
-let currentPath = null;
-let brushColor = "#000000";
-let brushSize = 3;
+let drawing = false;
+let current = {
+  color: '#000000',
+  size: 3
+};
 
+// 色と太さの同期
 document.getElementById("colorPicker").addEventListener("change", e => {
-  brushColor = e.target.value;
+  current.color = e.target.value;
 });
 
 document.getElementById("brushSize").addEventListener("input", e => {
-  brushSize = parseInt(e.target.value);
+  current.size = parseInt(e.target.value);
 });
 
-/* ===== 自分の描画 ===== */
+/* ===== 描画ロジック ===== */
 
-canvas.on("mouse:down", function(opt) {
-  isDrawing = true;
-  const pointer = canvas.getPointer(opt.e);
+function drawLine(x0, y0, x1, y1, color, size, emit) {
+  ctx.beginPath();
+  ctx.moveTo(x0, y0);
+  ctx.lineTo(x1, y1);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = size;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+  ctx.closePath();
 
-  currentPath = new fabric.Path([
-    ['M', pointer.x, pointer.y]
-  ], {
-    stroke: brushColor,
-    strokeWidth: brushSize,
-    fill: null,
-    strokeLineCap: 'round',
-    strokeLineJoin: 'round',
-    selectable: false,
-    evented: false
+  if (!emit) return;
+  const w = canvas.width;
+  const h = canvas.height;
+
+  // 画面サイズが違っても大丈夫なように割合で送るか、単純に座標で送るか
+  // ここでは単純な座標で送ります
+  socket.emit('drawing', {
+    x0: x0,
+    y0: y0,
+    x1: x1,
+    y1: y1,
+    color: color,
+    size: size
   });
+}
 
-  canvas.add(currentPath);
+function onMouseDown(e) {
+  drawing = true;
+  current.x = e.offsetX || e.touches[0].clientX - canvas.getBoundingClientRect().left;
+  current.y = e.offsetY || e.touches[0].clientY - canvas.getBoundingClientRect().top;
+}
 
-  socket.emit("drawStart", {
-    x: pointer.x,
-    y: pointer.y,
-    color: brushColor,
-    size: brushSize
-  });
-});
+function onMouseUp(e) {
+  if (!drawing) return;
+  drawing = false;
+  drawLine(current.x, current.y, e.offsetX || e.touches[0].clientX - canvas.getBoundingClientRect().left, e.offsetY || e.touches[0].clientY - canvas.getBoundingClientRect().top, current.color, current.size, true);
+}
 
-canvas.on("mouse:move", function(opt) {
-  if (!isDrawing || !currentPath) return;
+function onMouseMove(e) {
+  if (!drawing) return;
+  const x = e.offsetX || (e.touches ? e.touches[0].clientX - canvas.getBoundingClientRect().left : 0);
+  const y = e.offsetY || (e.touches ? e.touches[0].clientY - canvas.getBoundingClientRect().top : 0);
+  
+  drawLine(current.x, current.y, x, y, current.color, current.size, true);
+  current.x = x;
+  current.y = y;
+}
 
-  const pointer = canvas.getPointer(opt.e);
+// マウスイベント
+canvas.addEventListener('mousedown', onMouseDown, false);
+canvas.addEventListener('mouseup', onMouseUp, false);
+canvas.addEventListener('mouseout', onMouseUp, false);
+canvas.addEventListener('mousemove', onMouseMove, false);
 
-  currentPath.path.push(['L', pointer.x, pointer.y]);
-  canvas.requestRenderAll();
+// タッチイベント（スマホ対応）
+canvas.addEventListener('touchstart', onMouseDown, false);
+canvas.addEventListener('touchend', onMouseUp, false);
+canvas.addEventListener('touchcancel', onMouseUp, false);
+canvas.addEventListener('touchmove', onMouseMove, false);
 
-  socket.emit("drawing", {
-    x: pointer.x,
-    y: pointer.y
-  });
-});
-
-canvas.on("mouse:up", function() {
-  isDrawing = false;
-  currentPath = null;
-  socket.emit("drawEnd");
-});
-
-/* ===== 他人の描画 (複数人対応) ===== */
-
-const remotePaths = new Map();
-
-socket.on("drawStart", data => {
-  const p = new fabric.Path([
-    ['M', data.x, data.y]
-  ], {
-    stroke: data.color,
-    strokeWidth: data.size,
-    fill: null,
-    strokeLineCap: 'round',
-    strokeLineJoin: 'round',
-    selectable: false,
-    evented: false
-  });
-  canvas.add(p);
-  remotePaths.set(data.id, p);
-});
-
-socket.on("drawing", data => {
-  const p = remotePaths.get(data.id);
-  if (!p) return;
-
-  p.path.push(['L', data.x, data.y]);
-  canvas.requestRenderAll();
-});
-
-socket.on("drawEnd", data => {
-  remotePaths.delete(data.id);
+// サーバーからの描画データ受信
+socket.on('drawing', (data) => {
+  drawLine(data.x0, data.y0, data.x1, data.y1, data.color, data.size);
 });
 
 /* ===== チャット機能 ===== */

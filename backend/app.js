@@ -29,16 +29,8 @@ io.on("connection", (socket) => {
   console.log("ユーザー接続:", socket.id);
 
   // 描画
-  socket.on("drawStart", data => {
-    socket.broadcast.emit("drawStart", { ...data, id: socket.id });
-  });
-
-  socket.on("drawing", data => {
-    socket.broadcast.emit("drawing", { ...data, id: socket.id });
-  });
-
-  socket.on("drawEnd", () => {
-    socket.broadcast.emit("drawEnd", { id: socket.id });
+  socket.on("drawing", (data) => {
+    socket.broadcast.emit("drawing", data);
   });
 
   // ★ チャット追加
