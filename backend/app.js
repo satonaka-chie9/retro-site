@@ -33,6 +33,10 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("drawing", data);
   });
 
+  socket.on("clearCanvas", () => {
+    io.emit("clearCanvas");
+  });
+
   // ★ チャット追加
   socket.on("chat", (data) => {
     io.emit("chat", data);

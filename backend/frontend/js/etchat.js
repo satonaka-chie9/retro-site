@@ -1,4 +1,4 @@
-// Socket.io の接続（引数なしで自動的に同じホストに接続）
+// Socket.io の接続
 const socket = io();
 
 const canvas = document.getElementById('c');
@@ -10,13 +10,67 @@ let current = {
   size: 3
 };
 
-// 色と太さの同期
-document.getElementById("colorPicker").addEventListener("change", e => {
+// 履歴管理
+let history = [];
+let historyIndex = -1;
+
+function saveState() {
+  historyIndex++;
+  if (historyIndex < history.length) {
+    history.splice(historyIndex);
+  }
+  history.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+}
+
+// 初期状態を保存
+saveState();
+
+// UI 操作
+const colorPicker = document.getElementById("colorPicker");
+const brushSize = document.getElementById("brushSize");
+
+colorPicker.addEventListener("change", e => {
   current.color = e.target.value;
 });
 
-document.getElementById("brushSize").addEventListener("input", e => {
+brushSize.addEventListener("input", e => {
   current.size = parseInt(e.target.value);
+});
+
+// 消しゴムとペン
+document.getElementById("btn_pen").addEventListener("click", () => {
+  current.color = colorPicker.value;
+});
+
+document.getElementById("btn_eraser").addEventListener("click", () => {
+  current.color = "#ffffff";
+});
+
+// 戻る / 進む
+document.getElementById("btn_undo").addEventListener("click", () => {
+  if (historyIndex > 0) {
+    historyIndex--;
+    ctx.putImageData(history[historyIndex], 0, 0);
+  }
+});
+
+document.getElementById("btn_redo").addEventListener("click", () => {
+  if (historyIndex < history.length - 1) {
+    historyIndex++;
+    ctx.putImageData(history[historyIndex], 0, 0);
+  }
+});
+
+// 全消し
+document.getElementById("btn_clear").addEventListener("click", () => {
+  if (confirm("キャンバスをすべて消去しますか？")) {
+    socket.emit("clearCanvas");
+  }
+});
+
+socket.on("clearCanvas", () => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  saveState();
 });
 
 /* ===== 描画ロジック ===== */
@@ -32,11 +86,6 @@ function drawLine(x0, y0, x1, y1, color, size, emit) {
   ctx.closePath();
 
   if (!emit) return;
-  const w = canvas.width;
-  const h = canvas.height;
-
-  // 画面サイズが違っても大丈夫なように割合で送るか、単純に座標で送るか
-  // ここでは単純な座標で送ります
   socket.emit('drawing', {
     x0: x0,
     y0: y0,
@@ -49,20 +98,23 @@ function drawLine(x0, y0, x1, y1, color, size, emit) {
 
 function onMouseDown(e) {
   drawing = true;
-  current.x = e.offsetX || e.touches[0].clientX - canvas.getBoundingClientRect().left;
-  current.y = e.offsetY || e.touches[0].clientY - canvas.getBoundingClientRect().top;
+  const rect = canvas.getBoundingClientRect();
+  current.x = (e.clientX || e.touches[0].clientX) - rect.left;
+  current.y = (e.clientY || e.touches[0].clientY) - rect.top;
 }
 
 function onMouseUp(e) {
   if (!drawing) return;
   drawing = false;
-  drawLine(current.x, current.y, e.offsetX || e.touches[0].clientX - canvas.getBoundingClientRect().left, e.offsetY || e.touches[0].clientY - canvas.getBoundingClientRect().top, current.color, current.size, true);
+  // マウスを離したときに履歴を保存
+  saveState();
 }
 
 function onMouseMove(e) {
   if (!drawing) return;
-  const x = e.offsetX || (e.touches ? e.touches[0].clientX - canvas.getBoundingClientRect().left : 0);
-  const y = e.offsetY || (e.touches ? e.touches[0].clientY - canvas.getBoundingClientRect().top : 0);
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX || (e.touches ? e.touches[0].clientX : 0)) - rect.left;
+  const y = (e.clientY || (e.touches ? e.touches[0].clientY : 0)) - rect.top;
   
   drawLine(current.x, current.y, x, y, current.color, current.size, true);
   current.x = x;
@@ -75,11 +127,11 @@ canvas.addEventListener('mouseup', onMouseUp, false);
 canvas.addEventListener('mouseout', onMouseUp, false);
 canvas.addEventListener('mousemove', onMouseMove, false);
 
-// タッチイベント（スマホ対応）
-canvas.addEventListener('touchstart', onMouseDown, false);
-canvas.addEventListener('touchend', onMouseUp, false);
-canvas.addEventListener('touchcancel', onMouseUp, false);
-canvas.addEventListener('touchmove', onMouseMove, false);
+// タッチイベント
+canvas.addEventListener('touchstart', onMouseDown, { passive: false });
+canvas.addEventListener('touchend', onMouseUp, { passive: false });
+canvas.addEventListener('touchcancel', onMouseUp, { passive: false });
+canvas.addEventListener('touchmove', onMouseMove, { passive: false });
 
 // サーバーからの描画データ受信
 socket.on('drawing', (data) => {
