@@ -1,19 +1,25 @@
-FROM node:18-alpine
+FROM node:18-slim
+
+# sqlite3のビルドに必要な依存関係をインストール
+RUN apt-get update && apt-get install -y \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# backendフォルダのpackage.jsonをコピーしてインストール
+# backendフォルダのpackage.jsonをコピー
 COPY backend/package*.json ./
+# ネイティブモジュールをクリーンにインストール
 RUN npm install
 
-# backendフォルダの内容をコピー
+# アプリケーションのソースをコピー
 COPY backend/ ./
 
-# データ保存用ディレクトリの作成
+# データ保存用ディレクトリ
 RUN mkdir -p /app/data
 
-# ポート3000を開放
 EXPOSE 3000
 
-# 実行
 CMD ["node", "app.js"]
