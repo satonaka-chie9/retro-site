@@ -163,6 +163,10 @@ socket.on("chat", (data) => {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
+socket.on("chat_error", (data) => {
+  alert(data.message);
+});
+
 /* ===== アクセスカウンタ ===== */
 
 async function updateCounter() {

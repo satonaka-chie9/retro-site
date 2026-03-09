@@ -22,19 +22,17 @@ async function loadPosts() {
   const div = document.createElement("div");
   div.className = "post";
 
-  const created = new Date(post.created_at).toLocaleString("ja-JP", {
-    timeZone: "Asia/Tokyo"
-  });
+  const created = post.created_at;
 
   let editedMark = "";
 
   if (post.updated_at) {
-    editedMark = "（編集済）";
+    editedMark = `（編集済: ${post.updated_at}）`;
   }
 
   div.innerHTML = `
     <div class="post_header">
-      No.${post.id} ${post.name}
+      No.${post.id} <span class="post_name"></span>
       ${created} ${editedMark}
     </div>
     <pre class="post_body"></pre>
@@ -42,6 +40,7 @@ async function loadPosts() {
     <button class="delete-btn">削除</button>
   `;
 
+  div.querySelector(".post_name").textContent = post.name;
   div.querySelector(".post_body").textContent = post.content;
 
   // ★ これが必要
@@ -63,7 +62,7 @@ document.getElementById("postForm").addEventListener("submit", async (e) => {
   const name = document.getElementById("name").value;
   const content = document.getElementById("message").value;
 
-  await fetch(API_BASE + "/api/posts", {
+  const res = await fetch(API_BASE + "/api/posts", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -72,6 +71,12 @@ document.getElementById("postForm").addEventListener("submit", async (e) => {
       device_id: getDeviceId()
     })
   });
+
+  if (!res.ok) {
+    const errorData = await res.json();
+    alert(errorData.error || "投稿に失敗しました。");
+    return;
+  }
 
   document.getElementById("message").value = "";
   loadPosts();

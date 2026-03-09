@@ -1,7 +1,16 @@
 const sqlite3 = require("sqlite3").verbose();
-
 const path = require("path");
-const dbPath = path.join(__dirname, "database.db");
+const fs = require("fs");
+
+// Renderなどの環境で永続化ディスクを使用するための設定
+const dbPath = process.env.DATABASE_PATH || path.join(__dirname, "database.db");
+
+// データベースディレクトリが存在しない場合は作成する
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
 const db = new sqlite3.Database(dbPath);
 
 
@@ -13,7 +22,7 @@ db.serialize(() => {
       content TEXT,
       ip TEXT,
       device_id TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT (datetime('now', 'localtime')),
       updated_at DATETIME
     )
   `);
