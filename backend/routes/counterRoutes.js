@@ -16,7 +16,7 @@ router.post("/increment", async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: "サーバー内部エラーが発生しました" });
   }
 });
 
@@ -26,7 +26,7 @@ router.get("/", async (req, res) => {
     res.json(data);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ error: "サーバー内部エラーが発生しました" });
   }
 });
 

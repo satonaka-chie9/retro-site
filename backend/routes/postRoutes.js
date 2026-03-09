@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db/database");
 const rateLimit = require("express-rate-limit");
+const { validationResult } = require("express-validator");
+const { postValidation } = require("../validators/postValidator");
 
 // 投稿用レート制限: 1分間に5回まで
 const postLimiter = rateLimit({
@@ -13,6 +15,15 @@ const postLimiter = rateLimit({
   keyGenerator: (req) => getClientIp(req), // IP取得関数をキーとして使用
 });
 
+// バリデーション結果チェックミドルウェア
+const validate = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  next();
+};
+
 // IP取得を統一
 function getClientIp(req) {
   return (req.headers["x-forwarded-for"]?.split(",")[0] || req.ip)
@@ -22,13 +33,16 @@ function getClientIp(req) {
 // 投稿一覧
 router.get("/", (req, res) => {
   db.all("SELECT * FROM posts", [], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "サーバー内部エラーが発生しました" });
+    }
     res.json(rows);
   });
 });
 
 // 投稿追加
-router.post("/", postLimiter, (req, res) => {
+router.post("/", postLimiter, postValidation, validate, (req, res) => {
   const { name, content, device_id } = req.body;
   const ip = getClientIp(req);
 
@@ -36,19 +50,25 @@ router.post("/", postLimiter, (req, res) => {
     "INSERT INTO posts (name, content, device_id, ip) VALUES (?, ?, ?, ?)",
     [name || "名無しさん", content, device_id, ip],
     function (err) {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: "サーバー内部エラーが発生しました" });
+      }
       res.json({ success: true });
     }
   );
 });
 
 // 投稿更新
-router.put("/:id", (req, res) => {
+router.put("/:id", postValidation, validate, (req, res) => {
   const { id } = req.params;
   const { name, content, device_id } = req.body;
 
   db.get("SELECT device_id FROM posts WHERE id = ?", [id], (err, row) => {
-    if (err) return res.status(500).json({ error: err.message });
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "サーバー内部エラーが発生しました" });
+    }
     if (!row) return res.status(404).json({ error: "投稿が見つかりません" });
 
     if (row.device_id !== device_id) {
@@ -61,7 +81,10 @@ router.put("/:id", (req, res) => {
        WHERE id = ?`,
       [name || "名無しさん", content, id],
       function (err) {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ error: "サーバー内部エラーが発生しました" });
+        }
         res.json({ success: true });
       }
     );
@@ -74,7 +97,10 @@ router.delete("/:id", (req, res) => {
   const { device_id } = req.body;
 
   db.get("SELECT device_id FROM posts WHERE id = ?", [id], (err, row) => {
-    if (err) return res.status(500).json({ error: err.message });
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "サーバー内部エラーが発生しました" });
+    }
     if (!row) return res.status(404).json({ error: "投稿が見つかりません" });
 
     if (row.device_id !== device_id) {
@@ -82,7 +108,10 @@ router.delete("/:id", (req, res) => {
     }
 
     db.run("DELETE FROM posts WHERE id = ?", [id], function (err) {
-      if (err) return res.status(500).json({ error: err.message });
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: "サーバー内部エラーが発生しました" });
+      }
       res.json({ success: true });
     });
   });

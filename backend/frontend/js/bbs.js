@@ -34,7 +34,7 @@ async function loadPosts() {
 
   div.innerHTML = `
     <div class="post_header">
-      No.${post.id} ${post.name}
+      No.${post.id} <span class="post_name"></span>
       ${created} ${editedMark}
     </div>
     <pre class="post_body"></pre>
@@ -42,6 +42,7 @@ async function loadPosts() {
     <button class="delete-btn">削除</button>
   `;
 
+  div.querySelector(".post_name").textContent = post.name;
   div.querySelector(".post_body").textContent = post.content;
 
   // ★ これが必要

@@ -1,12 +1,34 @@
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const helmet = require("helmet");
+const cors = require("cors");
+const rateLimit = require("express-rate-limit");
 
 const app = express();
 const server = http.createServer(app);
+
+// セキュリティヘッダーの設定
+app.use(helmet());
+
+// CORSの設定
+app.use(cors());
+
+// レート制限 (全体)
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15分
+  max: 100, // IPごとに100リクエストまで
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(globalLimiter);
+
+// プロキシ信頼設定 (Rate LimitやIP取得のため)
+app.set('trust proxy', 1);
+
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: "*", // 必要に応じて適切なオリジンに制限してください
     methods: ["GET", "POST"]
   }
 });
