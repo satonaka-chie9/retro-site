@@ -22,14 +22,12 @@ async function loadPosts() {
   const div = document.createElement("div");
   div.className = "post";
 
-  const created = new Date(post.created_at).toLocaleString("ja-JP", {
-    timeZone: "Asia/Tokyo"
-  });
+  const created = post.created_at;
 
   let editedMark = "";
 
   if (post.updated_at) {
-    editedMark = "（編集済）";
+    editedMark = `（編集済: ${post.updated_at}）`;
   }
 
   div.innerHTML = `

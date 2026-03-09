@@ -77,7 +77,7 @@ router.put("/:id", postValidation, validate, (req, res) => {
 
     db.run(
       `UPDATE posts
-       SET name = ?, content = ?, updated_at = CURRENT_TIMESTAMP
+       SET name = ?, content = ?, updated_at = datetime('now', 'localtime')
        WHERE id = ?`,
       [name || "名無しさん", content, id],
       function (err) {

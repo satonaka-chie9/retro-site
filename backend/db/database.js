@@ -22,7 +22,7 @@ db.serialize(() => {
       content TEXT,
       ip TEXT,
       device_id TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_at DATETIME DEFAULT (datetime('now', 'localtime')),
       updated_at DATETIME
     )
   `);
