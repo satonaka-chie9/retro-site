@@ -85,11 +85,27 @@ async function loadPosts() {
 }); // ← forEach閉じる
 } // ← loadPosts閉じる
 
+// ページ読み込み時に保存されたユーザー名を復元
+function restoreUserName() {
+  const savedName = localStorage.getItem("bbs_user_name");
+  if (savedName) {
+    const nameInput = document.getElementById("name");
+    if (nameInput) {
+      nameInput.value = savedName;
+    }
+  }
+}
+
 document.getElementById("postForm").addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const name = document.getElementById("name").value;
-  const content = document.getElementById("message").value;
+  const nameInput = document.getElementById("name");
+  const messageInput = document.getElementById("message");
+  const name = nameInput.value || "名無しさん";
+  const content = messageInput.value;
+
+  // ユーザー名を保存
+  localStorage.setItem("bbs_user_name", name);
 
   const res = await fetch(API_BASE + "/api/posts", {
     method: "POST",
@@ -107,17 +123,28 @@ document.getElementById("postForm").addEventListener("submit", async (e) => {
     return;
   }
 
-  document.getElementById("message").value = "";
+  messageInput.value = "";
   loadPosts();
 });
 
 loadPosts();
+restoreUserName();
 
-async function editPost(id, currentContent) {
-  const newContent = prompt("内容を編集", currentContent);
-  if (!newContent) return;
+// ページアクセス時にカウンタを増やす
+async function updateCounter() {
+  const device_id = getDeviceId();
+  await fetch(API_BASE + "/api/counter/increment", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ device_id }),
+  });
 
-  await fetch(API_BASE + "/api/posts/" + id, {
+  const res = await fetch(API_BASE + "/api/counter");
+  const data = await res.json();
+
+  document.getElementById("counter").textContent = String(data.count).padStart(6, "0");
+}
+updateCounter();
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
