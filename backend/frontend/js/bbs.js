@@ -16,6 +16,86 @@ function getAdminToken() {
   return (token && token !== "undefined") ? token : "";
 }
 
+// 管理者ログイン
+async function adminLogin() {
+  const userInput = document.getElementById("admin-user");
+  const passInput = document.getElementById("admin-pass");
+  const msgArea = document.getElementById("admin-msg");
+  
+  if (!userInput || !passInput) return;
+
+  const username = userInput.value;
+  const password = passInput.value;
+
+  if (msgArea) {
+    msgArea.style.color = "#00FF00";
+    msgArea.innerText = "認証中...";
+  }
+
+  try {
+    const res = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      localStorage.setItem("admin_token", data.admin_token);
+      if (msgArea) {
+        msgArea.style.color = "#00FF00";
+        msgArea.innerText = "ログイン成功！";
+      }
+      setTimeout(() => {
+        updateAdminUI();
+        loadPosts();
+      }, 500);
+    } else {
+      if (msgArea) {
+        msgArea.style.color = "#FF0000";
+        msgArea.innerText = "ID/PASSが違います";
+      }
+      localStorage.removeItem("admin_token");
+    }
+  } catch (err) {
+    if (msgArea) {
+      msgArea.style.color = "#FF0000";
+      msgArea.innerText = "通信エラー";
+    }
+  }
+}
+
+function adminLogout() {
+  localStorage.removeItem("admin_token");
+  alert("ログアウトしました。");
+  updateAdminUI();
+  loadPosts();
+}
+
+function updateAdminUI() {
+  const token = getAdminToken();
+  const loginArea = document.getElementById("admin-login-area");
+  const logoutArea = document.getElementById("admin-logout-area");
+  const loginBtn = document.getElementById("admin-login-btn");
+  const logoutBtn = document.getElementById("admin-logout-btn");
+
+  if (token) {
+    if (loginArea) loginArea.style.display = "none";
+    if (logoutArea) logoutArea.style.display = "block";
+    if (logoutBtn) {
+      logoutBtn.onclick = adminLogout;
+    }
+  } else {
+    if (loginArea) loginArea.style.display = "block";
+    if (logoutArea) logoutArea.style.display = "none";
+    if (loginBtn) {
+      loginBtn.onclick = adminLogin;
+    }
+    const msgArea = document.getElementById("admin-msg");
+    if (msgArea) msgArea.innerText = "";
+  }
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return "";
   
@@ -50,7 +130,6 @@ async function loadPosts() {
 
   const adminToken = getAdminToken();
   const currentDeviceId = getDeviceId();
-  // トークンが空でないなら管理者とみなす
   const isAdmin = adminToken.length > 0;
 
   data.forEach(post => {
@@ -63,7 +142,6 @@ async function loadPosts() {
       editedMark = `（編集済: ${formatDate(post.updated_at)}）`;
     }
 
-    // 投稿者本人、または管理者の場合にボタンを表示
     const isOwner = post.device_id === currentDeviceId;
     
     div.innerHTML = `
@@ -192,8 +270,38 @@ async function deletePost(id) {
   }
 }
 
+async function updateCounter() {
+  const device_id = getDeviceId();
+  try {
+    await fetch(API_BASE + "/api/counter/increment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device_id }),
+    });
+
+    const res = await fetch(API_BASE + "/api/counter");
+    const data = await res.json();
+
+    const counterElement = document.getElementById("counter");
+    if (counterElement) {
+      counterElement.textContent = String(data.count).padStart(6, "0");
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 // 初期化
-loadPosts();
-restoreUserName();
+document.addEventListener('DOMContentLoaded', () => {
+  updateAdminUI();
+  updateCounter();
+  loadPosts();
+  restoreUserName();
+});
+
+// 万が一 DOMContentLoaded が発火済みのケースに対応
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  updateAdminUI();
+}
 
 setInterval(loadPosts, 5000);
