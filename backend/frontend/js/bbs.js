@@ -49,7 +49,8 @@ async function loadPosts() {
 
   const adminToken = getAdminToken();
   const currentDeviceId = getDeviceId();
-  const isAdmin = adminToken !== "";
+  // トークンが空でないなら管理者とみなす
+  const isAdmin = adminToken.length > 0;
 
   data.forEach(post => {
     const div = document.createElement("div");
@@ -71,26 +72,27 @@ async function loadPosts() {
       </div>
       <pre class="post_body"></pre>
       <div class="post_footer">
-        ${(isOwner || isAdmin) ? `<button class="edit-btn">編集</button><button class="delete-btn">削除</button>` : ''}
+        ${(isOwner || isAdmin) ? `
+          <button class="edit-btn">編集</button>
+          <button class="delete-btn">削除</button>
+        ` : ''}
       </div>
     `;
 
     div.querySelector(".post_body").textContent = post.content;
 
-    if (isOwner || isAdmin) {
-      const editBtn = div.querySelector(".edit-btn");
-      const delBtn = div.querySelector(".delete-btn");
+    const editBtn = div.querySelector(".edit-btn");
+    const delBtn = div.querySelector(".delete-btn");
 
-      if (editBtn) {
-        editBtn.addEventListener("click", () => {
-          editPost(post.id, post.content);
-        });
-      }
-      if (delBtn) {
-        delBtn.addEventListener("click", () => {
-          deletePost(post.id);
-        });
-      }
+    if (editBtn) {
+      editBtn.addEventListener("click", () => {
+        editPost(post.id, post.name, post.content);
+      });
+    }
+    if (delBtn) {
+      delBtn.addEventListener("click", () => {
+        deletePost(post.id);
+      });
     }
 
     container.appendChild(div);
@@ -140,7 +142,7 @@ if (postForm) {
   });
 }
 
-async function editPost(id, currentContent) {
+async function editPost(id, currentName, currentContent) {
   const newContent = prompt("内容を編集", currentContent);
   if (!newContent) return;
 
@@ -151,9 +153,10 @@ async function editPost(id, currentContent) {
       "X-Admin-Token": getAdminToken()
     },
     body: JSON.stringify({
-      name: localStorage.getItem("bbs_user_name") || "名無しさん",
+      name: currentName,
       content: newContent,
-      device_id: getDeviceId()
+      device_id: getDeviceId(),
+      admin_token: getAdminToken() // ボディにも含める
     })
   });
 
@@ -175,7 +178,8 @@ async function deletePost(id) {
       "X-Admin-Token": getAdminToken()
     },
     body: JSON.stringify({
-      device_id: getDeviceId()
+      device_id: getDeviceId(),
+      admin_token: getAdminToken() // ボディにも含める
     })
   });
 

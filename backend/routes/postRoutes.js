@@ -63,9 +63,10 @@ router.post("/", postLimiter, postValidation, validate, (req, res) => {
 router.put("/:id", postValidation, validate, (req, res) => {
   const { id } = req.params;
   const { name, content, device_id } = req.body;
-  const adminTokenHeader = req.headers["x-admin-token"];
+  const adminTokenFromHeader = req.headers["x-admin-token"];
+  const adminTokenFromBody = req.body.admin_token;
   const adminSecret = process.env.ADMIN_TOKEN || "default-secret-token";
-  const isAdmin = adminTokenHeader === adminSecret;
+  const isAdmin = (adminTokenFromHeader === adminSecret) || (adminTokenFromBody === adminSecret);
 
   db.get("SELECT device_id FROM posts WHERE id = ?", [id], (err, row) => {
     if (err) {
@@ -98,9 +99,10 @@ router.put("/:id", postValidation, validate, (req, res) => {
 router.delete("/:id", (req, res) => {
   const { id } = req.params;
   const { device_id } = req.body;
-  const adminTokenHeader = req.headers["x-admin-token"];
+  const adminTokenFromHeader = req.headers["x-admin-token"];
+  const adminTokenFromBody = req.body.admin_token;
   const adminSecret = process.env.ADMIN_TOKEN || "default-secret-token";
-  const isAdmin = adminTokenHeader === adminSecret;
+  const isAdmin = (adminTokenFromHeader === adminSecret) || (adminTokenFromBody === adminSecret);
 
   db.get("SELECT device_id FROM posts WHERE id = ?", [id], (err, row) => {
     if (err) {
