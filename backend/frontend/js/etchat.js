@@ -38,22 +38,32 @@ function requestSaveState() {
 const colorPicker = document.getElementById("colorPicker");
 const brushSize = document.getElementById("brushSize");
 
-colorPicker.addEventListener("change", e => {
-  current.color = e.target.value;
-});
+if (colorPicker) {
+  colorPicker.addEventListener("change", e => {
+    current.color = e.target.value;
+  });
+}
 
-brushSize.addEventListener("input", e => {
-  current.size = parseInt(e.target.value);
-});
+if (brushSize) {
+  brushSize.addEventListener("input", e => {
+    current.size = parseInt(e.target.value);
+  });
+}
 
 // 消しゴムとペン
-document.getElementById("btn_pen").addEventListener("click", () => {
-  current.color = colorPicker.value;
-});
+const btnPen = document.getElementById("btn_pen");
+if (btnPen) {
+  btnPen.addEventListener("click", () => {
+    current.color = colorPicker.value;
+  });
+}
 
-document.getElementById("btn_eraser").addEventListener("click", () => {
-  current.color = "#ffffff";
-});
+const btnEraser = document.getElementById("btn_eraser");
+if (btnEraser) {
+  btnEraser.addEventListener("click", () => {
+    current.color = "#ffffff";
+  });
+}
 
 // 戻る / 進む (同期)
 function performUndo(emit = false) {
@@ -72,18 +82,28 @@ function performRedo(emit = false) {
   }
 }
 
-document.getElementById("btn_undo").addEventListener("click", () => performUndo(true));
-document.getElementById("btn_redo").addEventListener("click", () => performRedo(true));
+const btnUndo = document.getElementById("btn_undo");
+if (btnUndo) {
+  btnUndo.addEventListener("click", () => performUndo(true));
+}
+
+const btnRedo = document.getElementById("btn_redo");
+if (btnRedo) {
+  btnRedo.addEventListener("click", () => performRedo(true));
+}
 
 socket.on("undo", () => performUndo(false));
 socket.on("redo", () => performRedo(false));
 
 // 全消し
-document.getElementById("btn_clear").addEventListener("click", () => {
-  if (confirm("キャンバスをすべて消去しますか？")) {
-    socket.emit("clearCanvas");
-  }
-});
+const btnClear = document.getElementById("btn_clear");
+if (btnClear) {
+  btnClear.addEventListener("click", () => {
+    if (confirm("キャンバスをすべて消去しますか？")) {
+      socket.emit("clearCanvas");
+    }
+  });
+}
 
 socket.on("clearCanvas", () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -170,30 +190,30 @@ function restoreChatName() {
   }
 }
 
-chatForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const name = chatName.value || "名無しさん";
-  const message = chatInput.value;
-  
-  // ユーザー名を保存
-  localStorage.setItem("bbs_user_name", name);
+if (chatForm) {
+  chatForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = chatName.value || "名無しさん";
+    const message = chatInput.value;
+    
+    // ユーザー名を保存
+    localStorage.setItem("bbs_user_name", name);
 
-  if (message) {
-    socket.emit("chat", { name, message });
-    chatInput.value = "";
-  }
-});
+    if (message) {
+      socket.emit("chat", { name, message });
+      chatInput.value = "";
+    }
+  });
+}
 
 socket.on("chat", (data) => {
   const msgDiv = document.createElement("div");
-...
-// 初期化
-restoreChatName();
-updateCounter();
   msgDiv.className = "chat_message_item";
   msgDiv.innerHTML = `<strong>${data.name}</strong>: ${data.message}`;
-  chatMessages.appendChild(msgDiv);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+  if (chatMessages) {
+    chatMessages.appendChild(msgDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
 });
 
 socket.on("chat_error", (data) => {
@@ -204,14 +224,23 @@ socket.on("chat_error", (data) => {
 
 async function updateCounter() {
   const device_id = localStorage.getItem("device_id") || "guest";
-  await fetch("/api/counter/increment", { 
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ device_id })
-  });
-  const res = await fetch("/api/counter");
-  const data = await res.json();
-  document.getElementById("counter").innerText =
-    String(data.count).padStart(6, "0");
+  try {
+    await fetch("/api/counter/increment", { 
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device_id })
+    });
+    const res = await fetch("/api/counter");
+    const data = await res.json();
+    const counterElement = document.getElementById("counter");
+    if (counterElement) {
+      counterElement.innerText = String(data.count).padStart(6, "0");
+    }
+  } catch (err) {
+    console.error(err);
+  }
 }
+
+// 初期化
+restoreChatName();
 updateCounter();
