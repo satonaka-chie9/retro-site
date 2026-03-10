@@ -11,30 +11,43 @@ function getDeviceId() {
 async function adminLogin() {
   const userInput = document.getElementById("admin-user");
   const passInput = document.getElementById("admin-pass");
+  const msgArea = document.getElementById("admin-msg");
   
   if (!userInput || !passInput) return;
 
   const username = userInput.value;
   const password = passInput.value;
 
+  if (msgArea) msgArea.innerText = "";
+
   if (!username || !password) {
-    alert("ユーザー名とパスワードを入力してください。");
+    if (msgArea) msgArea.innerText = "未入力です";
     return;
   }
 
-  const res = await fetch("/api/admin/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password })
-  });
+  try {
+    const res = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
 
-  const data = await res.json();
-  if (data.success) {
-    localStorage.setItem("admin_token", data.admin_token);
-    alert("管理者としてログインしました。");
-    location.reload();
-  } else {
-    alert("ログインに失敗しました。");
+    const data = await res.json();
+    if (res.ok && data.success) {
+      localStorage.setItem("admin_token", data.admin_token);
+      if (msgArea) {
+        msgArea.style.color = "#00FF00";
+        msgArea.innerText = "ログイン成功";
+      }
+      setTimeout(() => location.reload(), 500);
+    } else {
+      if (msgArea) {
+        msgArea.style.color = "#FF0000";
+        msgArea.innerText = data.error || "認証エラー";
+      }
+    }
+  } catch (err) {
+    if (msgArea) msgArea.innerText = "接続エラー";
   }
 }
 
