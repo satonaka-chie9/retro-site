@@ -49,6 +49,7 @@ async function loadPosts() {
 
   const adminToken = getAdminToken();
   const currentDeviceId = getDeviceId();
+  const isAdmin = adminToken !== "";
 
   data.forEach(post => {
     const div = document.createElement("div");
@@ -60,9 +61,8 @@ async function loadPosts() {
       editedMark = `（編集済: ${formatDate(post.updated_at)}）`;
     }
 
-    // 管理者、または投稿者本人の場合にボタンを表示（または常に表示してサーバーで弾く）
+    // 投稿者本人、または管理者の場合にボタンを表示
     const isOwner = post.device_id === currentDeviceId;
-    const isAdmin = adminToken !== "";
     
     div.innerHTML = `
       <div class="post_header">
@@ -78,12 +78,19 @@ async function loadPosts() {
     div.querySelector(".post_body").textContent = post.content;
 
     if (isOwner || isAdmin) {
-      div.querySelector(".edit-btn").addEventListener("click", () => {
-        editPost(post.id, post.content);
-      });
-      div.querySelector(".delete-btn").addEventListener("click", () => {
-        deletePost(post.id);
-      });
+      const editBtn = div.querySelector(".edit-btn");
+      const delBtn = div.querySelector(".delete-btn");
+
+      if (editBtn) {
+        editBtn.addEventListener("click", () => {
+          editPost(post.id, post.content);
+        });
+      }
+      if (delBtn) {
+        delBtn.addEventListener("click", () => {
+          deletePost(post.id);
+        });
+      }
     }
 
     container.appendChild(div);
@@ -100,35 +107,38 @@ function restoreUserName() {
   }
 }
 
-document.getElementById("postForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
+const postForm = document.getElementById("postForm");
+if (postForm) {
+  postForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-  const nameInput = document.getElementById("name");
-  const messageInput = document.getElementById("message");
-  const name = nameInput.value || "名無しさん";
-  const content = messageInput.value;
+    const nameInput = document.getElementById("name");
+    const messageInput = document.getElementById("message");
+    const name = nameInput.value || "名無しさん";
+    const content = messageInput.value;
 
-  localStorage.setItem("bbs_user_name", name);
+    localStorage.setItem("bbs_user_name", name);
 
-  const res = await fetch(API_BASE + "/api/posts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name,
-      content,
-      device_id: getDeviceId()
-    })
+    const res = await fetch(API_BASE + "/api/posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        content,
+        device_id: getDeviceId()
+      })
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      alert(errorData.error || "投稿に失敗しました。");
+      return;
+    }
+
+    messageInput.value = "";
+    loadPosts();
   });
-
-  if (!res.ok) {
-    const errorData = await res.json();
-    alert(errorData.error || "投稿に失敗しました。");
-    return;
-  }
-
-  messageInput.value = "";
-  loadPosts();
-});
+}
 
 async function editPost(id, currentContent) {
   const newContent = prompt("内容を編集", currentContent);
@@ -179,22 +189,27 @@ async function deletePost(id) {
 
 async function updateCounter() {
   const device_id = getDeviceId();
-  // 共通のUI更新は top.js が行う
-  await fetch(API_BASE + "/api/counter/increment", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ device_id }),
-  });
+  
+  try {
+    await fetch(API_BASE + "/api/counter/increment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device_id }),
+    });
 
-  const res = await fetch(API_BASE + "/api/counter");
-  const data = await res.json();
+    const res = await fetch(API_BASE + "/api/counter");
+    const data = await res.json();
 
-  const counterElement = document.getElementById("counter");
-  if (counterElement) {
-    counterElement.textContent = String(data.count).padStart(6, "0");
+    const counterElement = document.getElementById("counter");
+    if (counterElement) {
+      counterElement.textContent = String(data.count).padStart(6, "0");
+    }
+  } catch (err) {
+    console.error(err);
   }
 }
 
+// 初期化
 loadPosts();
 restoreUserName();
 updateCounter();
