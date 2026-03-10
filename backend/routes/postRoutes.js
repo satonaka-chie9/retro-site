@@ -42,21 +42,72 @@ router.get("/", (req, res) => {
 });
 
 // 投稿追加
-router.post("/", postLimiter, postValidation, validate, (req, res) => {
-  const { name, content, device_id } = req.body;
+router.post("/", postLimiter, postValidation, validate, async (req, res) => {
+  let { name, content, device_id } = req.body;
   const ip = getClientIp(req);
+  const adminTokenHeader = req.headers["x-admin-token"];
+  const adminTokenFromBody = req.body.admin_token;
+  const adminSecret = process.env.ADMIN_TOKEN || "default-secret-token";
+  const isAdmin = (adminTokenHeader === adminSecret) || (adminTokenFromBody === adminSecret);
 
-  db.run(
-    "INSERT INTO posts (name, content, device_id, ip) VALUES (?, ?, ?, ?)",
-    [name || "名無しさん", content, device_id, ip],
-    function (err) {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ error: "サーバー内部エラーが発生しました" });
-      }
-      res.json({ success: true });
+  if (!name || name === "名無しさん") {
+    name = "名無しさん";
+    return insertPost(name);
+  }
+
+  // 管理者の場合はチェック不要
+  if (isAdmin) {
+    return insertPost(name);
+  }
+
+  // 名前が他のデバイスで使用されていないかチェックし、必要ならリネーム
+  let finalName = name;
+  let suffix = 0;
+
+  const findAvailableName = (candidateName) => {
+    return new Promise((resolve, reject) => {
+      db.get(
+        "SELECT device_id FROM posts WHERE name = ? LIMIT 1",
+        [candidateName],
+        (err, row) => {
+          if (err) return reject(err);
+          if (!row || row.device_id === device_id) {
+            // 未使用、または自分のデバイスで使用中の名前ならOK
+            resolve(true);
+          } else {
+            // 他のデバイスで使用中
+            resolve(false);
+          }
+        }
+      );
+    });
+  };
+
+  try {
+    while (!(await findAvailableName(finalName))) {
+      suffix++;
+      finalName = `${name}.${suffix}`;
     }
-  );
+    insertPost(finalName);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "サーバー内部エラーが発生しました" });
+  }
+
+  function insertPost(resolvedName) {
+    db.run(
+      "INSERT INTO posts (name, content, device_id, ip) VALUES (?, ?, ?, ?)",
+      [resolvedName, content, device_id, ip],
+      function (err) {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ error: "サーバー内部エラーが発生しました" });
+        }
+        // 実際に使用された名前を返す
+        res.json({ success: true, used_name: resolvedName });
+      }
+    );
+  }
 });
 
 // 投稿更新

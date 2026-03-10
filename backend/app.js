@@ -90,8 +90,9 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("redo");
   });
 
-  // ★ チャット追加 (レート制限付き)
-  socket.on("chat", (data) => {
+  // ★ チャット追加 (名前の重複チェックとレート制限付き)
+  socket.on("chat", async (data) => {
+    let { name, message, device_id } = data;
     const now = Date.now();
     const limitWindow = 30 * 1000; // 30秒
     const maxMessages = 10;
@@ -101,7 +102,6 @@ io.on("connection", (socket) => {
     }
 
     const timestamps = chatRateLimits.get(socket.id);
-    // 古いタイムスタンプを削除
     const validTimestamps = timestamps.filter(ts => now - ts < limitWindow);
     
     if (validTimestamps.length >= maxMessages) {
@@ -109,10 +109,30 @@ io.on("connection", (socket) => {
       return;
     }
 
+    // 名前の重複チェック (BBSと共通のロジック)
+    let finalName = name || "名無しさん";
+    if (finalName !== "名無しさん" && device_id) {
+      let suffix = 0;
+      let nameCandidate = finalName;
+      
+      const checkName = (cand) => new Promise((resolve) => {
+        db.get("SELECT device_id FROM posts WHERE name = ? LIMIT 1", [cand], (err, row) => {
+          if (!row || row.device_id === device_id) resolve(true);
+          else resolve(false);
+        });
+      });
+
+      while (!(await checkName(nameCandidate))) {
+        suffix++;
+        nameCandidate = `${finalName}.${suffix}`;
+      }
+      finalName = nameCandidate;
+    }
+
     validTimestamps.push(now);
     chatRateLimits.set(socket.id, validTimestamps);
 
-    io.emit("chat", data);
+    io.emit("chat", { name: finalName, message, used_name: finalName });
   });
 
   socket.on("disconnect", () => {

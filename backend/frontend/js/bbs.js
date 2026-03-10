@@ -210,14 +210,17 @@ if (postForm) {
       })
     });
 
-    if (!res.ok) {
+    if (res.ok) {
+      const resultData = await res.json();
+      const finalName = resultData.used_name || name;
+      localStorage.setItem("bbs_user_name", finalName);
+      nameInput.value = finalName; // 入力欄も連番付きの名前に更新
+      messageInput.value = "";
+      loadPosts();
+    } else {
       const errorData = await res.json();
       alert(errorData.error || "投稿に失敗しました。");
-      return;
     }
-
-    messageInput.value = "";
-    loadPosts();
   });
 }
 
