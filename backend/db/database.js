@@ -71,11 +71,11 @@ db.serialize(() => {
     )
   `);
 
-  // 初期管理者アカウントの作成
+  // 初期管理者アカウントの作成 (環境変数の値で常に更新する)
   const adminPassword = process.env.ADMIN_PASSWORD || 'default_secure_password';
   db.run(`
-    INSERT OR IGNORE INTO users (username, password)
-    VALUES ('admin', ?)
+    INSERT OR REPLACE INTO users (id, username, password)
+    VALUES (1, 'admin', ?)
   `, [adminPassword]);
 
   db.run(`
