@@ -18,11 +18,9 @@ async function adminLogin() {
   const username = userInput.value;
   const password = passInput.value;
 
-  if (msgArea) msgArea.innerText = "";
-
-  if (!username || !password) {
-    if (msgArea) msgArea.innerText = "未入力です";
-    return;
+  if (msgArea) {
+    msgArea.style.color = "#00FF00";
+    msgArea.innerText = "認証中...";
   }
 
   try {
@@ -32,22 +30,29 @@ async function adminLogin() {
       body: JSON.stringify({ username, password })
     });
 
+    console.log("Login response status:", res.status);
     const data = await res.json();
+    console.log("Login response data:", data);
+
     if (res.ok && data.success) {
       localStorage.setItem("admin_token", data.admin_token);
       if (msgArea) {
         msgArea.style.color = "#00FF00";
-        msgArea.innerText = "ログイン成功";
+        msgArea.innerText = "ログイン成功！";
       }
-      setTimeout(() => location.reload(), 500);
+      setTimeout(() => location.reload(), 800);
     } else {
       if (msgArea) {
         msgArea.style.color = "#FF0000";
-        msgArea.innerText = data.error || "認証エラー";
+        msgArea.innerText = "IDまたはパスワードが違います";
       }
+      localStorage.removeItem("admin_token");
     }
   } catch (err) {
-    if (msgArea) msgArea.innerText = "接続エラー";
+    if (msgArea) {
+      msgArea.style.color = "#FF0000";
+      msgArea.innerText = "通信エラーが発生しました";
+    }
   }
 }
 
@@ -64,24 +69,23 @@ function updateAdminUI() {
   const loginBtn = document.getElementById("admin-login-btn");
   const logoutBtn = document.getElementById("admin-logout-btn");
 
-  if (token) {
+  if (token && token !== "undefined") {
     if (loginArea) loginArea.style.display = "none";
     if (logoutArea) logoutArea.style.display = "block";
     if (logoutBtn) {
-      logoutBtn.addEventListener("click", adminLogout);
+      logoutBtn.onclick = adminLogout;
     }
   } else {
     if (loginArea) loginArea.style.display = "block";
     if (logoutArea) logoutArea.style.display = "none";
     if (loginBtn) {
-      loginBtn.addEventListener("click", adminLogin);
+      loginBtn.onclick = adminLogin;
     }
   }
 }
 
 async function updateCounter() {
   const device_id = getDeviceId();
-  updateAdminUI();
   
   try {
     await fetch("/api/counter/increment", {
@@ -100,5 +104,12 @@ async function updateCounter() {
   }
 }
 
-// 初期化
-updateCounter();
+// 初期化（BBSページなどでも確実に呼ばれるようにする）
+window.addEventListener('DOMContentLoaded', () => {
+  updateAdminUI();
+  updateCounter();
+});
+
+// グローバルに公開
+window.adminLogin = adminLogin;
+window.adminLogout = adminLogout;

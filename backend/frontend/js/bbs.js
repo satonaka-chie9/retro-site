@@ -12,7 +12,8 @@ function getDeviceId() {
 }
 
 function getAdminToken() {
-  return localStorage.getItem("admin_token") || "";
+  const token = localStorage.getItem("admin_token");
+  return (token && token !== "undefined") ? token : "";
 }
 
 function formatDate(dateStr) {
@@ -156,7 +157,7 @@ async function editPost(id, currentName, currentContent) {
       name: currentName,
       content: newContent,
       device_id: getDeviceId(),
-      admin_token: getAdminToken() // ボディにも含める
+      admin_token: getAdminToken()
     })
   });
 
@@ -179,7 +180,7 @@ async function deletePost(id) {
     },
     body: JSON.stringify({
       device_id: getDeviceId(),
-      admin_token: getAdminToken() // ボディにも含める
+      admin_token: getAdminToken()
     })
   });
 
@@ -191,31 +192,8 @@ async function deletePost(id) {
   }
 }
 
-async function updateCounter() {
-  const device_id = getDeviceId();
-  
-  try {
-    await fetch(API_BASE + "/api/counter/increment", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ device_id }),
-    });
-
-    const res = await fetch(API_BASE + "/api/counter");
-    const data = await res.json();
-
-    const counterElement = document.getElementById("counter");
-    if (counterElement) {
-      counterElement.textContent = String(data.count).padStart(6, "0");
-    }
-  } catch (err) {
-    console.error(err);
-  }
-}
-
 // 初期化
 loadPosts();
 restoreUserName();
-updateCounter();
 
 setInterval(loadPosts, 5000);

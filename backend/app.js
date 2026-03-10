@@ -39,9 +39,17 @@ app.use(express.json());
 const db = require("./db/database");
 app.post("/api/admin/login", (req, res) => {
   const { username, password } = req.body;
+  console.log(`Login attempt for user: ${username}`);
   db.get("SELECT * FROM users WHERE username = ? AND password = ?", [username, password], (err, row) => {
-    if (err) return res.status(500).json({ error: "サーバーエラー" });
-    if (!row) return res.status(401).json({ error: "ログイン失敗" });
+    if (err) {
+      console.error("Login DB error:", err);
+      return res.status(500).json({ error: "サーバーエラー" });
+    }
+    if (!row) {
+      console.log("Login failed: User not found or password mismatch");
+      return res.status(401).json({ error: "ログイン失敗" });
+    }
+    console.log("Login success!");
     // 環境変数からトークンを取得
     const adminToken = process.env.ADMIN_TOKEN || "default-secret-token";
     res.json({ success: true, admin_token: adminToken });
