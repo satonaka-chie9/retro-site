@@ -62,6 +62,22 @@ db.serialize(() => {
     }
   });
 
+  // usersテーブルの作成
+  db.run(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE,
+      password TEXT
+    )
+  `);
+
+  // 初期管理者アカウントの作成
+  const adminPassword = process.env.ADMIN_PASSWORD || 'default_secure_password';
+  db.run(`
+    INSERT OR IGNORE INTO users (username, password)
+    VALUES ('admin', ?)
+  `, [adminPassword]);
+
   db.run(`
     CREATE INDEX IF NOT EXISTS idx_access_ip_device_date
     ON access_log(ip, device_id, accessed_date)

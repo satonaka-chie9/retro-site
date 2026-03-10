@@ -11,17 +11,17 @@ function getDeviceId() {
   return deviceId;
 }
 
+function getAdminToken() {
+  return localStorage.getItem("admin_token") || "";
+}
+
 function formatDate(dateStr) {
   if (!dateStr) return "";
   
-  // Date オブジェクトを作成
-  // SQLite の YYYY-MM-DD HH:MM:SS 形式 (UTC) を正しく解釈するため
-  // スペースを 'T' に置換し、末尾に 'Z' を付与して ISO 形式（UTC）にする
   const date = (dateStr.includes("T") || dateStr.includes("Z")) 
     ? new Date(dateStr) 
     : new Date(dateStr.replace(" ", "T") + "Z");
 
-  // ブラウザのタイムゾーンに関わらず常に日本時間（Asia/Tokyo）でフォーマット
   const formatter = new Intl.DateTimeFormat("ja-JP", {
     timeZone: "Asia/Tokyo",
     year: "numeric",
@@ -47,6 +47,9 @@ async function loadPosts() {
   const container = document.getElementById("posts_container");
   container.innerHTML = "";
 
+  const adminToken = getAdminToken();
+  const currentDeviceId = getDeviceId();
+
   data.forEach(post => {
     const div = document.createElement("div");
     div.className = "post";
@@ -57,33 +60,36 @@ async function loadPosts() {
       editedMark = `（編集済: ${formatDate(post.updated_at)}）`;
     }
 
+    // 管理者、または投稿者本人の場合にボタンを表示（または常に表示してサーバーで弾く）
+    const isOwner = post.device_id === currentDeviceId;
+    const isAdmin = adminToken !== "";
+    
     div.innerHTML = `
       <div class="post_header">
         No.${post.id} ${post.name}
         ${created} ${editedMark}
       </div>
       <pre class="post_body"></pre>
-      <button class="edit-btn">編集</button>
-      <button class="delete-btn">削除</button>
+      <div class="post_footer">
+        ${(isOwner || isAdmin) ? `<button class="edit-btn">編集</button><button class="delete-btn">削除</button>` : ''}
+      </div>
     `;
 
     div.querySelector(".post_body").textContent = post.content;
 
-    // 編集ボタン
-    div.querySelector(".edit-btn").addEventListener("click", () => {
-      editPost(post.id, post.content);
-    });
-
-    // 削除ボタン
-    div.querySelector(".delete-btn").addEventListener("click", () => {
-      deletePost(post.id);
-    });
+    if (isOwner || isAdmin) {
+      div.querySelector(".edit-btn").addEventListener("click", () => {
+        editPost(post.id, post.content);
+      });
+      div.querySelector(".delete-btn").addEventListener("click", () => {
+        deletePost(post.id);
+      });
+    }
 
     container.appendChild(div);
   });
 }
 
-// ページ読み込み時に保存されたユーザー名を復元
 function restoreUserName() {
   const savedName = localStorage.getItem("bbs_user_name");
   if (savedName) {
@@ -102,7 +108,6 @@ document.getElementById("postForm").addEventListener("submit", async (e) => {
   const name = nameInput.value || "名無しさん";
   const content = messageInput.value;
 
-  // ユーザー名を保存
   localStorage.setItem("bbs_user_name", name);
 
   const res = await fetch(API_BASE + "/api/posts", {
@@ -131,7 +136,10 @@ async function editPost(id, currentContent) {
 
   const res = await fetch(API_BASE + "/api/posts/" + id, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+      "Content-Type": "application/json",
+      "X-Admin-Token": getAdminToken()
+    },
     body: JSON.stringify({
       name: localStorage.getItem("bbs_user_name") || "名無しさん",
       content: newContent,
@@ -152,7 +160,10 @@ async function deletePost(id) {
 
   const res = await fetch(API_BASE + "/api/posts/" + id, {
     method: "DELETE",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+      "Content-Type": "application/json",
+      "X-Admin-Token": getAdminToken()
+    },
     body: JSON.stringify({
       device_id: getDeviceId()
     })
@@ -166,9 +177,9 @@ async function deletePost(id) {
   }
 }
 
-// ページアクセス時にカウンタを増やす
 async function updateCounter() {
   const device_id = getDeviceId();
+  // 共通のUI更新は top.js が行う
   await fetch(API_BASE + "/api/counter/increment", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -184,10 +195,8 @@ async function updateCounter() {
   }
 }
 
-// 初期化
 loadPosts();
 restoreUserName();
 updateCounter();
 
-// 定期的に投稿を更新（3秒おき）
-setInterval(loadPosts, 3000);
+setInterval(loadPosts, 5000);

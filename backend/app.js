@@ -35,6 +35,19 @@ const io = new Server(server, {
 
 app.use(express.json());
 
+// 管理者ログイン
+const db = require("./db/database");
+app.post("/api/admin/login", (req, res) => {
+  const { username, password } = req.body;
+  db.get("SELECT * FROM users WHERE username = ? AND password = ?", [username, password], (err, row) => {
+    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    if (!row) return res.status(401).json({ error: "ログイン失敗" });
+    // 環境変数からトークンを取得
+    const adminToken = process.env.ADMIN_TOKEN || "default-secret-token";
+    res.json({ success: true, admin_token: adminToken });
+  });
+});
+
 // 既存のルート
 const counterRoutes = require("./routes/counterRoutes");
 const postRoutes = require("./routes/postRoutes");

@@ -63,6 +63,9 @@ router.post("/", postLimiter, postValidation, validate, (req, res) => {
 router.put("/:id", postValidation, validate, (req, res) => {
   const { id } = req.params;
   const { name, content, device_id } = req.body;
+  const adminTokenHeader = req.headers["x-admin-token"];
+  const adminSecret = process.env.ADMIN_TOKEN || "default-secret-token";
+  const isAdmin = adminTokenHeader === adminSecret;
 
   db.get("SELECT device_id FROM posts WHERE id = ?", [id], (err, row) => {
     if (err) {
@@ -71,7 +74,7 @@ router.put("/:id", postValidation, validate, (req, res) => {
     }
     if (!row) return res.status(404).json({ error: "投稿が見つかりません" });
 
-    if (row.device_id !== device_id) {
+    if (!isAdmin && row.device_id !== device_id) {
       return res.status(403).json({ error: "他人の投稿は編集できません" });
     }
 
@@ -95,6 +98,9 @@ router.put("/:id", postValidation, validate, (req, res) => {
 router.delete("/:id", (req, res) => {
   const { id } = req.params;
   const { device_id } = req.body;
+  const adminTokenHeader = req.headers["x-admin-token"];
+  const adminSecret = process.env.ADMIN_TOKEN || "default-secret-token";
+  const isAdmin = adminTokenHeader === adminSecret;
 
   db.get("SELECT device_id FROM posts WHERE id = ?", [id], (err, row) => {
     if (err) {
@@ -103,7 +109,7 @@ router.delete("/:id", (req, res) => {
     }
     if (!row) return res.status(404).json({ error: "投稿が見つかりません" });
 
-    if (row.device_id !== device_id) {
+    if (!isAdmin && row.device_id !== device_id) {
       return res.status(403).json({ error: "他人の投稿は削除できません" });
     }
 
