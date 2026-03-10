@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: retro-site
+    runtime: docker
+    dockerfilePath: Dockerfile
+    dockerContext: .
+    plan: free # 必要に応じて変更してください
+    # Renderでビルド時に適切なバイナリを取得するように指定
+    envVars:
+      - key: DATABASE_PATH
+        value: /var/lib/data/database.db
+    disk:
+      name: retro-data
+      mountPath: /var/lib/data
+      sizeGB: 1

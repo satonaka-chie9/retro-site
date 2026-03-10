@@ -16,7 +16,8 @@ router.post("/increment", async (req, res) => {
     const result = await handleAccess(ip, device_id);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error(err);
+    res.status(500).json({ error: "サーバー内部エラーが発生しました" });
   }
 });
 
@@ -25,7 +26,8 @@ router.get("/", async (req, res) => {
     const data = await getCounter();
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error(err);
+    res.status(500).json({ error: "サーバー内部エラーが発生しました" });
   }
 });
 

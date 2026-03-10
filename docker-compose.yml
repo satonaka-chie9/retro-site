@@ -2,14 +2,22 @@ version: "3.8"
 
 services:
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
-      NODE_ENV: development
+      - NODE_ENV=development
+      - DATABASE_PATH=/app/data/database.db
+    volumes:
+      - ./data:/app/data
 
+  # フロントエンドを別途 Nginx で動かしたい場合の設定
+  # ただし backend (Express) も静的ファイルを配信しているため、
+  # Render では backend のみデプロイするのが一般的です。
   frontend:
-    build: ./frontend
+    build: ./backend/frontend
     ports:
       - "8080:80"
     depends_on:

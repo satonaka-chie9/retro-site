@@ -1,6 +1,18 @@
 const sqlite3 = require("sqlite3").verbose();
+const path = require("path");
+const fs = require("fs");
 
-const db = new sqlite3.Database("./database.db");
+// Renderなどの環境で永続化ディスクを使用するための設定
+const dbPath = process.env.DATABASE_PATH || path.join(__dirname, "database.db");
+
+// データベースディレクトリが存在しない場合は作成する
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+const db = new sqlite3.Database(dbPath);
+
 
 db.serialize(() => {
   db.run(`
