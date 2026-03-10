@@ -140,3 +140,28 @@ button:active {
 .delete-btn:hover {
   background-color: #d32f2f;
 }
+
+/* ===== プロフィール ===== */
+.profile_image {
+  width: 120px;
+  height: 120px;
+  border: 2px solid #00FF00;
+  margin-right: 15px;
+}
+
+.profile_box {
+  border: 2px solid #00FF00;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.profile_box th, .profile_box td {
+  border: 1px solid #00FF00;
+  padding: 8px;
+  text-align: left;
+}
+
+.center_text {
+  text-align: center;
+}
+

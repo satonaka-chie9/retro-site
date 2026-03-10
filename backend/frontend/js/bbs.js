@@ -11,6 +11,35 @@ function getDeviceId() {
   return deviceId;
 }
 
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  
+  // Date オブジェクトを作成
+  // SQLite の YYYY-MM-DD HH:MM:SS 形式 (UTC) を正しく解釈するため
+  // スペースを 'T' に置換し、末尾に 'Z' を付与して ISO 形式（UTC）にする
+  const date = (dateStr.includes("T") || dateStr.includes("Z")) 
+    ? new Date(dateStr) 
+    : new Date(dateStr.replace(" ", "T") + "Z");
+
+  // ブラウザのタイムゾーンに関わらず常に日本時間（Asia/Tokyo）でフォーマット
+  const formatter = new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false
+  });
+
+  const parts = formatter.formatToParts(date);
+  const p = {};
+  parts.forEach(part => p[part.type] = part.value);
+
+  return `${p.year}/${p.month}/${p.day} ${p.hour}:${p.minute}:${p.second}`;
+}
+
 async function loadPosts() {
   const res = await fetch(API_BASE + "/api/posts");
   const data = await res.json();
@@ -22,12 +51,12 @@ async function loadPosts() {
   const div = document.createElement("div");
   div.className = "post";
 
-  const created = post.created_at;
+  const created = formatDate(post.created_at);
 
   let editedMark = "";
 
   if (post.updated_at) {
-    editedMark = `（編集済: ${post.updated_at}）`;
+    editedMark = `（編集済: ${formatDate(post.updated_at)}）`;
   }
 
   div.innerHTML = `
