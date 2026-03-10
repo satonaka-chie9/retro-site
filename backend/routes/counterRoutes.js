@@ -9,25 +9,26 @@ function getClientIp(req) {
   );
 }
 
+// カウンターを増やす
 router.post("/increment", async (req, res) => {
   try {
     const ip = getClientIp(req);
-    const { device_id } = req.body;
+    const { device_id } = req.body; // フロントエンドから送信されたID
     const result = await handleAccess(ip, device_id);
     res.json(result);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "サーバー内部エラーが発生しました" });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
+// 現在のカウントを取得
 router.get("/", async (req, res) => {
   try {
     const data = await getCounter();
     res.json(data);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "サーバー内部エラーが発生しました" });
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 

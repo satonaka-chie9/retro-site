@@ -18,31 +18,34 @@ function dbRun(sql, params = []) {
   });
 }
 
+/**
+ * アクセスを処理し、必要に応じてカウントアップする
+ * @param {string} ip - クライアントのIPアドレス
+ * @param {string} deviceId - クライアントのデバイスID (UUID)
+ */
 async function handleAccess(ip, deviceId) {
   const today = new Date().toISOString().slice(0, 10);
 
+  // 今日、同じIPかつ同じデバイスIDでのアクセスがあるか確認
   const existing = await dbGet(
     "SELECT 1 FROM access_log WHERE ip = ? AND device_id = ? AND accessed_date = ?",
     [ip, deviceId, today]
   );
 
-  if (existing) return { alreadyCounted: true };
-
-  // counter行がなければ作る
-  const counterRow = await dbGet(
-    "SELECT count FROM counter WHERE id = 1"
-  );
-
-  if (!counterRow) {
-    await dbRun(
-      "INSERT INTO counter (id, count) VALUES (1, 0)"
-    );
+  if (existing) {
+    return { alreadyCounted: true };
   }
 
-  await dbRun(
-    "UPDATE counter SET count = count + 1 WHERE id = 1"
-  );
+  // カウンター行の存在確認と作成
+  const counterRow = await dbGet("SELECT count FROM counter WHERE id = 1");
+  if (!counterRow) {
+    await dbRun("INSERT INTO counter (id, count) VALUES (1, 0)");
+  }
 
+  // カウントアップ
+  await dbRun("UPDATE counter SET count = count + 1 WHERE id = 1");
+
+  // アクセスログを保存
   await dbRun(
     "INSERT INTO access_log (ip, device_id, accessed_date) VALUES (?, ?, ?)",
     [ip, deviceId, today]
@@ -52,9 +55,7 @@ async function handleAccess(ip, deviceId) {
 }
 
 async function getCounter() {
-  const row = await dbGet(
-    "SELECT count FROM counter WHERE id = 1"
-  );
+  const row = await dbGet("SELECT count FROM counter WHERE id = 1");
   return row || { count: 0 };
 }
 
