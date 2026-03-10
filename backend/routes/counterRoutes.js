@@ -12,7 +12,8 @@ function getClientIp(req) {
 router.post("/increment", async (req, res) => {
   try {
     const ip = getClientIp(req);
-    const result = await handleAccess(ip);
+    const { device_id } = req.body;
+    const result = await handleAccess(ip, device_id);
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: "Internal Server Error" });

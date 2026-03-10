@@ -18,12 +18,12 @@ function dbRun(sql, params = []) {
   });
 }
 
-async function handleAccess(ip) {
+async function handleAccess(ip, deviceId) {
   const today = new Date().toISOString().slice(0, 10);
 
   const existing = await dbGet(
-    "SELECT 1 FROM access_log WHERE ip = ? AND accessed_date = ?",
-    [ip, today]
+    "SELECT 1 FROM access_log WHERE ip = ? AND device_id = ? AND accessed_date = ?",
+    [ip, deviceId, today]
   );
 
   if (existing) return { alreadyCounted: true };
@@ -44,8 +44,8 @@ async function handleAccess(ip) {
   );
 
   await dbRun(
-    "INSERT INTO access_log (ip, accessed_date) VALUES (?, ?)",
-    [ip, today]
+    "INSERT INTO access_log (ip, device_id, accessed_date) VALUES (?, ?, ?)",
+    [ip, deviceId, today]
   );
 
   return { counted: true };

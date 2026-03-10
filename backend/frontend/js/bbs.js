@@ -113,8 +113,11 @@ async function deletePost(id) {
 
 //ページアクセス時にカウンタを増やす
 async function updateCounter() {
+  const device_id = getDeviceId();
   await fetch(API_BASE + "/api/counter/increment", {
-    method: "POST"
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ device_id }),
   });
 
   const res = await fetch(API_BASE + "/api/counter");

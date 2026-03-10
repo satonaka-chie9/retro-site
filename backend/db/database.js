@@ -31,13 +31,14 @@ db.serialize(() => {
     CREATE TABLE IF NOT EXISTS access_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       ip TEXT,
+      device_id TEXT,
       accessed_date TEXT
     )
   `);
 
   db.run(`
-    CREATE INDEX IF NOT EXISTS idx_access_ip_date
-    ON access_log(ip, accessed_date)
+    CREATE INDEX IF NOT EXISTS idx_access_ip_device_date
+    ON access_log(ip, device_id, accessed_date)
   `);
 });
 
