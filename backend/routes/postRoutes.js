@@ -45,18 +45,44 @@ router.get("/", (req, res) => {
 router.post("/", postLimiter, postValidation, validate, (req, res) => {
   const { name, content, device_id } = req.body;
   const ip = getClientIp(req);
+  const adminTokenHeader = req.headers["x-admin-token"];
+  const adminTokenFromBody = req.body.admin_token;
+  const adminSecret = process.env.ADMIN_TOKEN || "default-secret-token";
+  const isAdmin = (adminTokenHeader === adminSecret) || (adminTokenFromBody === adminSecret);
 
-  db.run(
-    "INSERT INTO posts (name, content, device_id, ip) VALUES (?, ?, ?, ?)",
-    [name || "名無しさん", content, device_id, ip],
-    function (err) {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ error: "サーバー内部エラーが発生しました" });
+  // 名前が他のデバイスで使用されていないかチェック (管理者は免除)
+  if (!isAdmin && name && name !== "名無しさん") {
+    db.get(
+      "SELECT device_id FROM posts WHERE name = ? AND device_id != ? LIMIT 1",
+      [name, device_id],
+      (err, row) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ error: "サーバー内部エラーが発生しました" });
+        }
+        if (row) {
+          return res.status(403).json({ error: "この名前は他のデバイスですでに使用されています。別の名前を入力してください。" });
+        }
+        insertPost();
       }
-      res.json({ success: true });
-    }
-  );
+    );
+  } else {
+    insertPost();
+  }
+
+  function insertPost() {
+    db.run(
+      "INSERT INTO posts (name, content, device_id, ip) VALUES (?, ?, ?, ?)",
+      [name || "名無しさん", content, device_id, ip],
+      function (err) {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ error: "サーバー内部エラーが発生しました" });
+        }
+        res.json({ success: true });
+      }
+    );
+  }
 });
 
 // 投稿更新
