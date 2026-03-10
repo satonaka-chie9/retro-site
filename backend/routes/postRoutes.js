@@ -86,7 +86,7 @@ router.post("/", postLimiter, postValidation, validate, async (req, res) => {
   try {
     while (!(await findAvailableName(finalName))) {
       suffix++;
-      finalName = `${name}${suffix}`;
+      finalName = `${name}.${suffix}`;
     }
     insertPost(finalName);
   } catch (err) {

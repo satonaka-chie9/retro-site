@@ -124,7 +124,7 @@ io.on("connection", (socket) => {
 
       while (!(await checkName(nameCandidate))) {
         suffix++;
-        nameCandidate = `${finalName}${suffix}`;
+        nameCandidate = `${finalName}.${suffix}`;
       }
       finalName = nameCandidate;
     }
