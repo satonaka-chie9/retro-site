@@ -24,10 +24,15 @@
     </div>
 
     <p class="menu_title">管理者用</p>
-    <button id="admin-login-btn" onclick="adminLogin()">管理者ログイン</button>
-    <button id="admin-logout-btn" onclick="adminLogout()" style="display:none;">ログアウト</button>
+    <div id="admin-login-area">
+      <input type="text" id="admin-user" placeholder="USER" style="width:80px; margin-bottom:5px;"><br>
+      <input type="password" id="admin-pass" placeholder="PASS" style="width:80px; margin-bottom:5px;"><br>
+      <button onclick="adminLogin()">LOGIN</button>
     </div>
-
+    <div id="admin-logout-area" style="display:none;">
+      <button onclick="adminLogout()">LOGOUT</button>
+    </div>
+    </div>
   <!-- メインコンテンツ -->
   <div class="main_content">
 

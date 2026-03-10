@@ -9,10 +9,18 @@ function getDeviceId() {
 
 // 管理者ログイン
 async function adminLogin() {
-  const username = prompt("管理者ユーザー名を入力してください");
-  const password = prompt("管理者パスワードを入力してください");
+  const userInput = document.getElementById("admin-user");
+  const passInput = document.getElementById("admin-pass");
+  
+  if (!userInput || !passInput) return;
 
-  if (!username || !password) return;
+  const username = userInput.value;
+  const password = passInput.value;
+
+  if (!username || !password) {
+    alert("ユーザー名とパスワードを入力してください。");
+    return;
+  }
 
   const res = await fetch("/api/admin/login", {
     method: "POST",
@@ -38,19 +46,15 @@ function adminLogout() {
 
 function updateAdminUI() {
   const token = localStorage.getItem("admin_token");
-  const loginBtn = document.getElementById("admin-login-btn");
-  const logoutBtn = document.getElementById("admin-logout-btn");
+  const loginArea = document.getElementById("admin-login-area");
+  const logoutArea = document.getElementById("admin-logout-area");
 
   if (token) {
-    if (loginBtn) loginBtn.style.display = "none";
-    if (logoutBtn) logoutBtn.style.display = "block";
+    if (loginArea) loginArea.style.display = "none";
+    if (logoutArea) logoutArea.style.display = "block";
   } else {
-    if (loginBtn) {
-       loginBtn.style.display = "block";
-       loginBtn.innerText = "管理者ログイン";
-       loginBtn.onclick = adminLogin;
-    }
-    if (logoutBtn) logoutBtn.style.display = "none";
+    if (loginArea) loginArea.style.display = "block";
+    if (logoutArea) logoutArea.style.display = "none";
   }
 }
 
