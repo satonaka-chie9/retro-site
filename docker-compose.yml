@@ -10,6 +10,8 @@ services:
     environment:
       - NODE_ENV=development
       - DATABASE_PATH=/app/data/database.db
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ADMIN_TOKEN=${ADMIN_TOKEN}
     volumes:
       - ./data:/app/data
 
