@@ -74,6 +74,14 @@ io.on("connection", (socket) => {
     io.emit("clearCanvas");
   });
 
+  socket.on("undo", () => {
+    socket.broadcast.emit("undo");
+  });
+
+  socket.on("redo", () => {
+    socket.broadcast.emit("redo");
+  });
+
   // ★ チャット追加 (レート制限付き)
   socket.on("chat", (data) => {
     const now = Date.now();

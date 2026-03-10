@@ -13,6 +13,7 @@ let current = {
 // 履歴管理
 let history = [];
 let historyIndex = -1;
+let saveTimeout = null;
 
 function saveState() {
   historyIndex++;
@@ -24,6 +25,14 @@ function saveState() {
 
 // 初期状態を保存
 saveState();
+
+// 描画を受信したときに履歴を保存するためのタイマー
+function requestSaveState() {
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    saveState();
+  }, 500); // 描画が止まって0.5秒後に保存
+}
 
 // UI 操作
 const colorPicker = document.getElementById("colorPicker");
@@ -46,20 +55,28 @@ document.getElementById("btn_eraser").addEventListener("click", () => {
   current.color = "#ffffff";
 });
 
-// 戻る / 進む
-document.getElementById("btn_undo").addEventListener("click", () => {
+// 戻る / 進む (同期)
+function performUndo(emit = false) {
   if (historyIndex > 0) {
     historyIndex--;
     ctx.putImageData(history[historyIndex], 0, 0);
+    if (emit) socket.emit("undo");
   }
-});
+}
 
-document.getElementById("btn_redo").addEventListener("click", () => {
+function performRedo(emit = false) {
   if (historyIndex < history.length - 1) {
     historyIndex++;
     ctx.putImageData(history[historyIndex], 0, 0);
+    if (emit) socket.emit("redo");
   }
-});
+}
+
+document.getElementById("btn_undo").addEventListener("click", () => performUndo(true));
+document.getElementById("btn_redo").addEventListener("click", () => performRedo(true));
+
+socket.on("undo", () => performUndo(false));
+socket.on("redo", () => performRedo(false));
 
 // 全消し
 document.getElementById("btn_clear").addEventListener("click", () => {
@@ -99,14 +116,13 @@ function drawLine(x0, y0, x1, y1, color, size, emit) {
 function onMouseDown(e) {
   drawing = true;
   const rect = canvas.getBoundingClientRect();
-  current.x = (e.clientX || e.touches[0].clientX) - rect.left;
-  current.y = (e.clientY || e.touches[0].clientY) - rect.top;
+  current.x = (e.clientX || (e.touches ? e.touches[0].clientX : 0)) - rect.left;
+  current.y = (e.clientY || (e.touches ? e.touches[0].clientY : 0)) - rect.top;
 }
 
 function onMouseUp(e) {
   if (!drawing) return;
   drawing = false;
-  // マウスを離したときに履歴を保存
   saveState();
 }
 
@@ -136,6 +152,7 @@ canvas.addEventListener('touchmove', onMouseMove, { passive: false });
 // サーバーからの描画データ受信
 socket.on('drawing', (data) => {
   drawLine(data.x0, data.y0, data.x1, data.y1, data.color, data.size);
+  requestSaveState(); // 受信後にも保存を予約
 });
 
 /* ===== チャット機能 ===== */
@@ -170,7 +187,12 @@ socket.on("chat_error", (data) => {
 /* ===== アクセスカウンタ ===== */
 
 async function updateCounter() {
-  await fetch("/api/counter/increment", { method: "POST" });
+  const device_id = localStorage.getItem("device_id") || "guest";
+  await fetch("/api/counter/increment", { 
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ device_id })
+  });
   const res = await fetch("/api/counter");
   const data = await res.json();
   document.getElementById("counter").innerText =
