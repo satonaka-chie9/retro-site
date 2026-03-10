@@ -35,6 +35,27 @@ const io = new Server(server, {
 
 app.use(express.json());
 
+// 管理者ログイン
+const db = require("./db/database");
+app.post("/api/admin/login", (req, res) => {
+  const { username, password } = req.body;
+  console.log(`Login attempt for user: ${username}`);
+  db.get("SELECT * FROM users WHERE username = ? AND password = ?", [username, password], (err, row) => {
+    if (err) {
+      console.error("Login DB error:", err);
+      return res.status(500).json({ error: "サーバーエラー" });
+    }
+    if (!row) {
+      console.log("Login failed: User not found or password mismatch");
+      return res.status(401).json({ error: "ログイン失敗" });
+    }
+    console.log("Login success!");
+    // 環境変数からトークンを取得
+    const adminToken = process.env.ADMIN_TOKEN || "default-secret-token";
+    res.json({ success: true, admin_token: adminToken });
+  });
+});
+
 // 既存のルート
 const counterRoutes = require("./routes/counterRoutes");
 const postRoutes = require("./routes/postRoutes");
@@ -59,6 +80,14 @@ io.on("connection", (socket) => {
 
   socket.on("clearCanvas", () => {
     io.emit("clearCanvas");
+  });
+
+  socket.on("undo", () => {
+    socket.broadcast.emit("undo");
+  });
+
+  socket.on("redo", () => {
+    socket.broadcast.emit("redo");
   });
 
   // ★ チャット追加 (レート制限付き)

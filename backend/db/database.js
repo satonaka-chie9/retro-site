@@ -15,17 +15,24 @@ const db = new sqlite3.Database(dbPath);
 
 
 db.serialize(() => {
+  // postsテーブルの作成とdevice_idカラムの確認
   db.run(`
     CREATE TABLE IF NOT EXISTS posts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT,
       content TEXT,
       ip TEXT,
-      device_id TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME
     )
   `);
+
+  // device_id カラムがない場合は追加 (posts)
+  db.run("ALTER TABLE posts ADD COLUMN device_id TEXT", (err) => {
+    if (err && !err.message.includes("duplicate column name")) {
+      // すでにある場合は無視、それ以外のエラーはログ出し
+    }
+  });
 
   db.run(`
     CREATE TABLE IF NOT EXISTS counter (
@@ -39,6 +46,7 @@ db.serialize(() => {
     VALUES (1, 0)
   `);
 
+  // access_logテーブルの作成とdevice_idカラムの確認
   db.run(`
     CREATE TABLE IF NOT EXISTS access_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,9 +55,32 @@ db.serialize(() => {
     )
   `);
 
+  // device_id カラムがない場合は追加 (access_log)
+  db.run("ALTER TABLE access_log ADD COLUMN device_id TEXT", (err) => {
+    if (err && !err.message.includes("duplicate column name")) {
+      // すでにある場合は無視
+    }
+  });
+
+  // usersテーブルの作成
   db.run(`
-    CREATE INDEX IF NOT EXISTS idx_access_ip_date
-    ON access_log(ip, accessed_date)
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE,
+      password TEXT
+    )
+  `);
+
+  // 初期管理者アカウントの作成 (環境変数の値で常に更新する)
+  const adminPassword = process.env.ADMIN_PASSWORD || 'default_secure_password';
+  db.run(`
+    INSERT OR REPLACE INTO users (id, username, password)
+    VALUES (1, 'admin', ?)
+  `, [adminPassword]);
+
+  db.run(`
+    CREATE INDEX IF NOT EXISTS idx_access_ip_device_date
+    ON access_log(ip, device_id, accessed_date)
   `);
 });
 

@@ -20,10 +20,20 @@
 
     <p class="menu_title">アクセスカウンタ</p>
     <div class="counter" id="counter">
-      <span>0000</span>
+      <span>000000</span>
     </div>
-  </div>
 
+    <p class="menu_title">管理者用</p>
+    <div id="admin-login-area">
+      <input type="text" id="admin-user" placeholder="USER" style="width:80px; margin-bottom:5px;"><br>
+      <input type="password" id="admin-pass" placeholder="PASS" style="width:80px; margin-bottom:5px;"><br>
+      <button id="admin-login-btn">LOGIN</button>
+      <div id="admin-msg" style="font-size:12px; color:#FF0000; margin-top:5px;"></div>
+    </div>
+    <div id="admin-logout-area" style="display:none;">
+      <button id="admin-logout-btn">LOGOUT</button>
+    </div>
+    </div>
   <!-- メインコンテンツ -->
   <div class="main_content">
 

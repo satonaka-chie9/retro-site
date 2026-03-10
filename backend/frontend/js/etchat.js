@@ -13,6 +13,7 @@ let current = {
 // 履歴管理
 let history = [];
 let historyIndex = -1;
+let saveTimeout = null;
 
 function saveState() {
   historyIndex++;
@@ -25,48 +26,84 @@ function saveState() {
 // 初期状態を保存
 saveState();
 
+// 描画を受信したときに履歴を保存するためのタイマー
+function requestSaveState() {
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    saveState();
+  }, 500); // 描画が止まって0.5秒後に保存
+}
+
 // UI 操作
 const colorPicker = document.getElementById("colorPicker");
 const brushSize = document.getElementById("brushSize");
 
-colorPicker.addEventListener("change", e => {
-  current.color = e.target.value;
-});
+if (colorPicker) {
+  colorPicker.addEventListener("change", e => {
+    current.color = e.target.value;
+  });
+}
 
-brushSize.addEventListener("input", e => {
-  current.size = parseInt(e.target.value);
-});
+if (brushSize) {
+  brushSize.addEventListener("input", e => {
+    current.size = parseInt(e.target.value);
+  });
+}
 
 // 消しゴムとペン
-document.getElementById("btn_pen").addEventListener("click", () => {
-  current.color = colorPicker.value;
-});
+const btnPen = document.getElementById("btn_pen");
+if (btnPen) {
+  btnPen.addEventListener("click", () => {
+    current.color = colorPicker.value;
+  });
+}
 
-document.getElementById("btn_eraser").addEventListener("click", () => {
-  current.color = "#ffffff";
-});
+const btnEraser = document.getElementById("btn_eraser");
+if (btnEraser) {
+  btnEraser.addEventListener("click", () => {
+    current.color = "#ffffff";
+  });
+}
 
-// 戻る / 進む
-document.getElementById("btn_undo").addEventListener("click", () => {
+// 戻る / 進む (同期)
+function performUndo(emit = false) {
   if (historyIndex > 0) {
     historyIndex--;
     ctx.putImageData(history[historyIndex], 0, 0);
+    if (emit) socket.emit("undo");
   }
-});
+}
 
-document.getElementById("btn_redo").addEventListener("click", () => {
+function performRedo(emit = false) {
   if (historyIndex < history.length - 1) {
     historyIndex++;
     ctx.putImageData(history[historyIndex], 0, 0);
+    if (emit) socket.emit("redo");
   }
-});
+}
+
+const btnUndo = document.getElementById("btn_undo");
+if (btnUndo) {
+  btnUndo.addEventListener("click", () => performUndo(true));
+}
+
+const btnRedo = document.getElementById("btn_redo");
+if (btnRedo) {
+  btnRedo.addEventListener("click", () => performRedo(true));
+}
+
+socket.on("undo", () => performUndo(false));
+socket.on("redo", () => performRedo(false));
 
 // 全消し
-document.getElementById("btn_clear").addEventListener("click", () => {
-  if (confirm("キャンバスをすべて消去しますか？")) {
-    socket.emit("clearCanvas");
-  }
-});
+const btnClear = document.getElementById("btn_clear");
+if (btnClear) {
+  btnClear.addEventListener("click", () => {
+    if (confirm("キャンバスをすべて消去しますか？")) {
+      socket.emit("clearCanvas");
+    }
+  });
+}
 
 socket.on("clearCanvas", () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -99,14 +136,13 @@ function drawLine(x0, y0, x1, y1, color, size, emit) {
 function onMouseDown(e) {
   drawing = true;
   const rect = canvas.getBoundingClientRect();
-  current.x = (e.clientX || e.touches[0].clientX) - rect.left;
-  current.y = (e.clientY || e.touches[0].clientY) - rect.top;
+  current.x = (e.clientX || (e.touches ? e.touches[0].clientX : 0)) - rect.left;
+  current.y = (e.clientY || (e.touches ? e.touches[0].clientY : 0)) - rect.top;
 }
 
 function onMouseUp(e) {
   if (!drawing) return;
   drawing = false;
-  // マウスを離したときに履歴を保存
   saveState();
 }
 
@@ -136,6 +172,7 @@ canvas.addEventListener('touchmove', onMouseMove, { passive: false });
 // サーバーからの描画データ受信
 socket.on('drawing', (data) => {
   drawLine(data.x0, data.y0, data.x1, data.y1, data.color, data.size);
+  requestSaveState(); // 受信後にも保存を予約
 });
 
 /* ===== チャット機能 ===== */
@@ -145,22 +182,38 @@ const chatInput = document.getElementById("chatInput");
 const chatName = document.getElementById("chatName");
 const chatMessages = document.getElementById("chat_messages");
 
-chatForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const name = chatName.value || "名無しさん";
-  const message = chatInput.value;
-  if (message) {
-    socket.emit("chat", { name, message });
-    chatInput.value = "";
+// ユーザー名を復元
+function restoreChatName() {
+  const savedName = localStorage.getItem("bbs_user_name");
+  if (savedName && chatName) {
+    chatName.value = savedName;
   }
-});
+}
+
+if (chatForm) {
+  chatForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = chatName.value || "名無しさん";
+    const message = chatInput.value;
+    
+    // ユーザー名を保存
+    localStorage.setItem("bbs_user_name", name);
+
+    if (message) {
+      socket.emit("chat", { name, message });
+      chatInput.value = "";
+    }
+  });
+}
 
 socket.on("chat", (data) => {
   const msgDiv = document.createElement("div");
   msgDiv.className = "chat_message_item";
   msgDiv.innerHTML = `<strong>${data.name}</strong>: ${data.message}`;
-  chatMessages.appendChild(msgDiv);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+  if (chatMessages) {
+    chatMessages.appendChild(msgDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
 });
 
 socket.on("chat_error", (data) => {
@@ -170,10 +223,24 @@ socket.on("chat_error", (data) => {
 /* ===== アクセスカウンタ ===== */
 
 async function updateCounter() {
-  await fetch("/api/counter/increment", { method: "POST" });
-  const res = await fetch("/api/counter");
-  const data = await res.json();
-  document.getElementById("counter").innerText =
-    String(data.count).padStart(6, "0");
+  const device_id = localStorage.getItem("device_id") || "guest";
+  try {
+    await fetch("/api/counter/increment", { 
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device_id })
+    });
+    const res = await fetch("/api/counter");
+    const data = await res.json();
+    const counterElement = document.getElementById("counter");
+    if (counterElement) {
+      counterElement.innerText = String(data.count).padStart(6, "0");
+    }
+  } catch (err) {
+    console.error(err);
+  }
 }
+
+// 初期化
+restoreChatName();
 updateCounter();
