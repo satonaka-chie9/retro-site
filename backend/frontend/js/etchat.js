@@ -196,17 +196,30 @@ if (chatForm) {
     const name = chatName.value || "名無しさん";
     const message = chatInput.value;
     
-    // ユーザー名を保存
+    // ユーザー名を保存 (暫定的)
     localStorage.setItem("bbs_user_name", name);
 
     if (message) {
-      socket.emit("chat", { name, message });
+      socket.emit("chat", { 
+        name, 
+        message, 
+        device_id: localStorage.getItem("device_id") 
+      });
       chatInput.value = "";
     }
   });
 }
 
 socket.on("chat", (data) => {
+  // 自分が送った場合のリネーム反映
+  if (data.used_name && localStorage.getItem("bbs_user_name") !== data.used_name) {
+    // 自分が入力していた名前と一致する場合のみ更新
+    if (chatName && chatName.value === localStorage.getItem("bbs_user_name")) {
+      localStorage.setItem("bbs_user_name", data.used_name);
+      chatName.value = data.used_name;
+    }
+  }
+
   const msgDiv = document.createElement("div");
   msgDiv.className = "chat_message_item";
   msgDiv.innerHTML = `<strong>${data.name}</strong>: ${data.message}`;
