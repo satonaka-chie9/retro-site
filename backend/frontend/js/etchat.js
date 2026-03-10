@@ -162,10 +162,22 @@ const chatInput = document.getElementById("chatInput");
 const chatName = document.getElementById("chatName");
 const chatMessages = document.getElementById("chat_messages");
 
+// ユーザー名を復元
+function restoreChatName() {
+  const savedName = localStorage.getItem("bbs_user_name");
+  if (savedName && chatName) {
+    chatName.value = savedName;
+  }
+}
+
 chatForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const name = chatName.value || "名無しさん";
   const message = chatInput.value;
+  
+  // ユーザー名を保存
+  localStorage.setItem("bbs_user_name", name);
+
   if (message) {
     socket.emit("chat", { name, message });
     chatInput.value = "";
@@ -174,6 +186,10 @@ chatForm.addEventListener("submit", (e) => {
 
 socket.on("chat", (data) => {
   const msgDiv = document.createElement("div");
+...
+// 初期化
+restoreChatName();
+updateCounter();
   msgDiv.className = "chat_message_item";
   msgDiv.innerHTML = `<strong>${data.name}</strong>: ${data.message}`;
   chatMessages.appendChild(msgDiv);
