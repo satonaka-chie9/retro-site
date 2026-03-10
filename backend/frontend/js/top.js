@@ -7,6 +7,11 @@ function getDeviceId() {
   return deviceId;
 }
 
+function getAdminToken() {
+  const token = localStorage.getItem("admin_token");
+  return (token && token !== "undefined") ? token : "";
+}
+
 // 管理者ログイン
 async function adminLogin() {
   const userInput = document.getElementById("admin-user");
@@ -30,28 +35,25 @@ async function adminLogin() {
       body: JSON.stringify({ username, password })
     });
 
-    console.log("Login response status:", res.status);
     const data = await res.json();
-    console.log("Login response data:", data);
-
     if (res.ok && data.success) {
       localStorage.setItem("admin_token", data.admin_token);
       if (msgArea) {
         msgArea.style.color = "#00FF00";
         msgArea.innerText = "ログイン成功！";
       }
-      setTimeout(() => location.reload(), 800);
+      setTimeout(() => location.reload(), 500);
     } else {
       if (msgArea) {
         msgArea.style.color = "#FF0000";
-        msgArea.innerText = "IDまたはパスワードが違います";
+        msgArea.innerText = data.error || "ID/PASSが違います";
       }
       localStorage.removeItem("admin_token");
     }
   } catch (err) {
     if (msgArea) {
       msgArea.style.color = "#FF0000";
-      msgArea.innerText = "通信エラーが発生しました";
+      msgArea.innerText = "通信エラー";
     }
   }
 }
@@ -63,13 +65,13 @@ function adminLogout() {
 }
 
 function updateAdminUI() {
-  const token = localStorage.getItem("admin_token");
+  const token = getAdminToken();
   const loginArea = document.getElementById("admin-login-area");
   const logoutArea = document.getElementById("admin-logout-area");
   const loginBtn = document.getElementById("admin-login-btn");
   const logoutBtn = document.getElementById("admin-logout-btn");
 
-  if (token && token !== "undefined") {
+  if (token) {
     if (loginArea) loginArea.style.display = "none";
     if (logoutArea) logoutArea.style.display = "block";
     if (logoutBtn) {
@@ -86,7 +88,6 @@ function updateAdminUI() {
 
 async function updateCounter() {
   const device_id = getDeviceId();
-  
   try {
     await fetch("/api/counter/increment", {
       method: "POST",
@@ -104,11 +105,16 @@ async function updateCounter() {
   }
 }
 
-// 初期化（BBSページなどでも確実に呼ばれるようにする）
-window.addEventListener('DOMContentLoaded', () => {
+// ページ読み込み完了時に実行
+document.addEventListener('DOMContentLoaded', () => {
   updateAdminUI();
   updateCounter();
 });
+
+// 万が一 DOMContentLoaded が発火済みのケースに対応
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  updateAdminUI();
+}
 
 // グローバルに公開
 window.adminLogin = adminLogin;
