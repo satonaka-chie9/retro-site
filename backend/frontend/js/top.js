@@ -48,31 +48,44 @@ function updateAdminUI() {
   const token = localStorage.getItem("admin_token");
   const loginArea = document.getElementById("admin-login-area");
   const logoutArea = document.getElementById("admin-logout-area");
+  const loginBtn = document.getElementById("admin-login-btn");
+  const logoutBtn = document.getElementById("admin-logout-btn");
 
   if (token) {
     if (loginArea) loginArea.style.display = "none";
     if (logoutArea) logoutArea.style.display = "block";
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", adminLogout);
+    }
   } else {
     if (loginArea) loginArea.style.display = "block";
     if (logoutArea) logoutArea.style.display = "none";
+    if (loginBtn) {
+      loginBtn.addEventListener("click", adminLogin);
+    }
   }
 }
 
 async function updateCounter() {
   const device_id = getDeviceId();
   updateAdminUI();
-  await fetch("/api/counter/increment", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ device_id }),
-  });
-  const res = await fetch("/api/counter");
-  const data = await res.json();
-  document.getElementById("counter").innerText =
-    String(data.count).padStart(6, "0");
+  
+  try {
+    await fetch("/api/counter/increment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ device_id }),
+    });
+    const res = await fetch("/api/counter");
+    const data = await res.json();
+    const counterElement = document.getElementById("counter");
+    if (counterElement) {
+      counterElement.innerText = String(data.count).padStart(6, "0");
+    }
+  } catch (err) {
+    console.error("Counter error:", err);
+  }
 }
-updateCounter();
 
-// グローバルに公開
-window.adminLogin = adminLogin;
-window.adminLogout = adminLogout;
+// 初期化
+updateCounter();
