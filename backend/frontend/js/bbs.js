@@ -47,43 +47,41 @@ async function loadPosts() {
   const container = document.getElementById("posts_container");
   container.innerHTML = "";
 
- data.forEach(post => {
-  const div = document.createElement("div");
-  div.className = "post";
+  data.forEach(post => {
+    const div = document.createElement("div");
+    div.className = "post";
 
-  const created = formatDate(post.created_at);
+    const created = formatDate(post.created_at);
+    let editedMark = "";
+    if (post.updated_at) {
+      editedMark = `（編集済: ${formatDate(post.updated_at)}）`;
+    }
 
-  let editedMark = "";
+    div.innerHTML = `
+      <div class="post_header">
+        No.${post.id} ${post.name}
+        ${created} ${editedMark}
+      </div>
+      <pre class="post_body"></pre>
+      <button class="edit-btn">編集</button>
+      <button class="delete-btn">削除</button>
+    `;
 
-  if (post.updated_at) {
-    editedMark = `（編集済: ${formatDate(post.updated_at)}）`;
-  }
+    div.querySelector(".post_body").textContent = post.content;
 
-  div.innerHTML = `
-    <div class="post_header">
-      No.${post.id} <span class="post_name"></span>
-      ${created} ${editedMark}
-    </div>
-    <pre class="post_body"></pre>
-    <button class="edit-btn">編集</button>
-    <button class="delete-btn">削除</button>
-  `;
+    // 編集ボタン
+    div.querySelector(".edit-btn").addEventListener("click", () => {
+      editPost(post.id, post.content);
+    });
 
-  div.querySelector(".post_name").textContent = post.name;
-  div.querySelector(".post_body").textContent = post.content;
+    // 削除ボタン
+    div.querySelector(".delete-btn").addEventListener("click", () => {
+      deletePost(post.id);
+    });
 
-  // ★ これが必要
-  div.querySelector(".edit-btn").addEventListener("click", () => {
-    editPost(post.id, post.content);
+    container.appendChild(div);
   });
-
-  div.querySelector(".delete-btn").addEventListener("click", () => {
-    deletePost(post.id);
-  });
-
-  container.appendChild(div);
-}); // ← forEach閉じる
-} // ← loadPosts閉じる
+}
 
 // ページ読み込み時に保存されたユーザー名を復元
 function restoreUserName() {
@@ -127,8 +125,46 @@ document.getElementById("postForm").addEventListener("submit", async (e) => {
   loadPosts();
 });
 
-loadPosts();
-restoreUserName();
+async function editPost(id, currentContent) {
+  const newContent = prompt("内容を編集", currentContent);
+  if (!newContent) return;
+
+  const res = await fetch(API_BASE + "/api/posts/" + id, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: localStorage.getItem("bbs_user_name") || "名無しさん",
+      content: newContent,
+      device_id: getDeviceId()
+    })
+  });
+
+  if (res.ok) {
+    loadPosts();
+  } else {
+    const data = await res.json();
+    alert(data.error || "編集に失敗しました。");
+  }
+}
+
+async function deletePost(id) {
+  if (!confirm("本当に削除しますか？")) return;
+
+  const res = await fetch(API_BASE + "/api/posts/" + id, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      device_id: getDeviceId()
+    })
+  });
+
+  if (res.ok) {
+    loadPosts();
+  } else {
+    const data = await res.json();
+    alert(data.error || "削除に失敗しました。");
+  }
+}
 
 // ページアクセス時にカウンタを増やす
 async function updateCounter() {
@@ -142,51 +178,16 @@ async function updateCounter() {
   const res = await fetch(API_BASE + "/api/counter");
   const data = await res.json();
 
-  document.getElementById("counter").textContent = String(data.count).padStart(6, "0");
-}
-updateCounter();
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      name: "名無しさん",
-      content: newContent,
-      device_id: getDeviceId()
-    })
-  });
-
-  loadPosts();
+  const counterElement = document.getElementById("counter");
+  if (counterElement) {
+    counterElement.textContent = String(data.count).padStart(6, "0");
+  }
 }
 
-async function deletePost(id) {
-  if (!confirm("本当に削除しますか？")) return;
-
-  await fetch(API_BASE + "/api/posts/" + id, {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-    device_id: getDeviceId()
-  })
-});
-
-  loadPosts();
-}
-
-
-//ページアクセス時にカウンタを増やす
-async function updateCounter() {
-  const device_id = getDeviceId();
-  await fetch(API_BASE + "/api/counter/increment", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ device_id }),
-  });
-
-  const res = await fetch(API_BASE + "/api/counter");
-  const data = await res.json();
-
-  document.getElementById("counter").textContent = String(data.count).padStart(6, "0");
-}
-
+// 初期化
+loadPosts();
+restoreUserName();
 updateCounter();
 
+// 定期的に投稿を更新（3秒おき）
 setInterval(loadPosts, 3000);
