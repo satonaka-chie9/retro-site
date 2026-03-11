@@ -58,14 +58,27 @@ router.get("/", (req, res) => {
   });
 });
 
+const escapeHTML = (str) => {
+  if (!str) return str;
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
 // ブログ投稿 (画像付き)
 router.post("/", adminOnly, upload.single("image"), (req, res) => {
-  const { title, content } = req.body;
+  let { title, content } = req.body;
   const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
 
   if (!title || !content) {
     return res.status(400).json({ error: "タイトルと本文は必須です" });
   }
+
+  title = escapeHTML(title);
+  content = escapeHTML(content);
 
   db.run(
     "INSERT INTO articles (title, content, image_url) VALUES (?, ?, ?)",

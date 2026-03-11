@@ -124,36 +124,46 @@ async function fetchNews() {
 
     const isAdmin = getAdminToken().length > 0;
 
-    listEl.innerHTML = newsItems.map(item => {
+    listEl.innerHTML = "";
+    newsItems.forEach(item => {
       const dateVal = item.created_at || item.updated_at;
       const dateStr = dateVal 
         ? new Date(dateVal.replace(" ", "T") + "Z").toLocaleDateString("ja-JP")
         : "日付不明";
       
-      return `
-        <div class="news-item" id="news-item-${item.id}" style="margin-bottom: 15px; border-bottom: 1px dotted #333; padding-bottom: 10px;">
-          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px;">
-            <span style="font-size: 0.8em; color: #888;">[${dateStr}]</span>
-            ${isAdmin ? `
-              <div style="font-size: 11px;">
-                <button class="news-btn" data-id="${item.id}" data-action="edit">編集</button>
-                <button class="news-btn" data-id="${item.id}" data-action="delete">削除</button>
-              </div>
-            ` : ''}
-          </div>
-          <p class="news-content-text" id="news-content-${item.id}" style="margin: 0; white-space: pre-wrap; line-height: 1.4;">${item.content}</p>
-          
-          <!-- 編集フォーム (初期非表示) -->
-          <div class="news-edit-form" id="news-edit-form-${item.id}" style="display: none; margin-top: 10px;">
-            <textarea id="news-edit-input-${item.id}" style="width: 100%; height: 50px; background-color: #222; color: #00FF00; border: 1px solid #00FF00;"></textarea>
-            <div style="margin-top: 5px;">
-              <button class="news-btn" data-id="${item.id}" data-action="save">保存</button>
-              <button class="news-btn" data-id="${item.id}" data-action="cancel">キャンセル</button>
+      const div = document.createElement("div");
+      div.className = "news-item";
+      div.id = `news-item-${item.id}`;
+      div.style.marginBottom = "15px";
+      div.style.borderBottom = "1px dotted #333";
+      div.style.paddingBottom = "10px";
+
+      div.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px;">
+          <span style="font-size: 0.8em; color: #888;" class="news-date-display"></span>
+          ${isAdmin ? `
+            <div style="font-size: 11px;">
+              <button class="news-btn" data-id="${item.id}" data-action="edit">編集</button>
+              <button class="news-btn" data-id="${item.id}" data-action="delete">削除</button>
             </div>
+          ` : ''}
+        </div>
+        <p class="news-content-text" id="news-content-${item.id}" style="margin: 0; white-space: pre-wrap; line-height: 1.4;"></p>
+        
+        <div class="news-edit-form" id="news-edit-form-${item.id}" style="display: none; margin-top: 10px;">
+          <textarea id="news-edit-input-${item.id}" style="width: 100%; height: 50px; background-color: #222; color: #00FF00; border: 1px solid #00FF00;"></textarea>
+          <div style="margin-top: 5px;">
+            <button class="news-btn" data-id="${item.id}" data-action="save">保存</button>
+            <button class="news-btn" data-id="${item.id}" data-action="cancel">キャンセル</button>
           </div>
         </div>
       `;
-    }).join("");
+
+      div.querySelector(".news-date-display").textContent = `[${dateStr}]`;
+      div.querySelector(".news-content-text").textContent = item.content;
+
+      listEl.appendChild(div);
+    });
   } catch (err) {
     listEl.innerHTML = '<p style="color: #F00;">お知らせの読み込みに失敗しました。</p>';
   }
