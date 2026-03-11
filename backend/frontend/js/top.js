@@ -1,3 +1,15 @@
+let csrfToken = "";
+
+async function fetchCsrfToken() {
+  try {
+    const res = await fetch("/api/csrf-token");
+    const data = await res.json();
+    csrfToken = data.csrfToken;
+  } catch (err) {
+    console.error("Failed to fetch CSRF token:", err);
+  }
+}
+
 function getDeviceId() {
   let deviceId = localStorage.getItem("device_id");
   if (!deviceId) {
@@ -28,10 +40,16 @@ async function adminLogin() {
     msgArea.innerText = "認証中...";
   }
 
+  // トークンがない場合は再取得を試みる
+  if (!csrfToken) await fetchCsrfToken();
+
   try {
     const res = await fetch("/api/admin/login", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken
+      },
       body: JSON.stringify({ username, password })
     });
 
@@ -49,6 +67,8 @@ async function adminLogin() {
         msgArea.innerText = data.error || "ID/PASSが違います";
       }
       localStorage.removeItem("admin_token");
+      // エラー時はトークンを再取得（有効期限切れなどの対策）
+      await fetchCsrfToken();
     }
   } catch (err) {
     if (msgArea) {
@@ -106,7 +126,8 @@ async function updateCounter() {
 }
 
 // ページ読み込み完了時に実行
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await fetchCsrfToken(); // 最初にトークンを取得
   updateAdminUI();
   updateCounter();
 });

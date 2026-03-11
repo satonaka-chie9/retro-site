@@ -4,15 +4,30 @@ const { Server } = require("socket.io");
 const helmet = require("helmet");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
+const cookieParser = require("cookie-parser");
+const crypto = require("crypto");
 
 const app = express();
 const server = http.createServer(app);
 
+// クッキーの設定 (CSRF対策で使用)
+const COOKIE_SECRET = process.env.COOKIE_SECRET || "retro-site-secret-key-12345";
+app.use(cookieParser(COOKIE_SECRET));
+
 // セキュリティヘッダーの設定
 app.use(helmet());
 
-// CORSの設定
-app.use(cors());
+// CORSの設定 (開発環境と本番環境で適切に設定してください)
+// ここでは、自分のオリジンからのリクエストのみを許可するように制限します
+const allowedOrigins = [
+  "http://localhost:3000",
+  process.env.APP_URL // 環境変数で本番URLを指定可能にする
+].filter(Boolean);
+
+app.use(cors({
+  origin: allowedOrigins.length > 0 ? allowedOrigins : true, // 開発中は true (全許可) またはオリジン指定
+  credentials: true
+}));
 
 // レート制限 (全体)
 const globalLimiter = rateLimit({
@@ -28,16 +43,45 @@ app.set('trust proxy', 1);
 
 const io = new Server(server, {
   cors: {
-    origin: "*", // 必要に応じて適切なオリジンに制限してください
+    origin: allowedOrigins.length > 0 ? allowedOrigins : "*",
     methods: ["GET", "POST"]
   }
 });
 
 app.use(express.json());
 
+// --- CSRF 対策ミドルウェア ---
+const csrfProtection = (req, res, next) => {
+  // GET, HEAD, OPTIONS は検証をスキップ
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    return next();
+  }
+
+  const csrfTokenFromHeader = req.headers["x-csrf-token"];
+  const csrfTokenFromCookie = req.signedCookies["_csrf"];
+
+  if (!csrfTokenFromHeader || !csrfTokenFromCookie || csrfTokenFromHeader !== csrfTokenFromCookie) {
+    console.warn(`CSRF validation failed for ${req.method} ${req.path}`);
+    return res.status(403).json({ error: "不正なリクエストです (CSRF)" });
+  }
+  next();
+};
+
+// CSRFトークン発行エンドポイント
+app.get("/api/csrf-token", (req, res) => {
+  const token = crypto.randomBytes(32).toString("hex");
+  res.cookie("_csrf", token, {
+    httpOnly: true,
+    signed: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production"
+  });
+  res.json({ csrfToken: token });
+});
+
 // 管理者ログイン
 const db = require("./db/database");
-app.post("/api/admin/login", (req, res) => {
+app.post("/api/admin/login", csrfProtection, (req, res) => {
   const { username, password } = req.body;
   console.log(`Login attempt for user: ${username}`);
   db.get("SELECT * FROM users WHERE username = ? AND password = ?", [username, password], (err, row) => {
@@ -60,7 +104,7 @@ app.post("/api/admin/login", (req, res) => {
 const counterRoutes = require("./routes/counterRoutes");
 const postRoutes = require("./routes/postRoutes");
 app.use("/api/counter", counterRoutes);
-app.use("/api/posts", postRoutes);
+app.use("/api/posts", csrfProtection, postRoutes); // 投稿ルートにもCSRF対策を適用
 
 // 静的ファイルの提供
 const path = require("path");
