@@ -81,14 +81,6 @@ db.serialize(() => {
     )
   `);
 
-  // 既存テーブルへのカラム追加 (以前の単一項目版からの移行)
-  db.run("ALTER TABLE news ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP", (err) => {
-    // すでにある場合は無視
-  });
-  db.run("ALTER TABLE news ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP", (err) => {
-    // すでにある場合は無視
-  });
-
   // blog articlesテーブルの作成
   db.run(`
     CREATE TABLE IF NOT EXISTS articles (
