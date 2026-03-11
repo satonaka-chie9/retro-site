@@ -119,7 +119,7 @@ async function loadBlogs() {
         </div>
         ${isAdmin ? `
           <div style="margin-top: 10px;">
-            <button onclick="deleteBlog(${blog.id})" style="font-size: 10px;">削除</button>
+            <button class="blog-delete-btn" data-id="${blog.id}" style="font-size: 10px;">削除</button>
           </div>
         ` : ""}
       </div>
@@ -127,6 +127,19 @@ async function loadBlogs() {
   } catch (err) {
     container.innerHTML = "<p>記事の読み込みに失敗しました。</p>";
   }
+}
+
+// イベント委譲によるブログ操作
+function initBlogEvents() {
+  const container = document.getElementById("blog_container");
+  if (!container) return;
+
+  container.addEventListener("click", (e) => {
+    if (e.target.classList.contains("blog-delete-btn")) {
+      const id = e.target.dataset.id;
+      deleteBlog(id);
+    }
+  });
 }
 
 async function deleteBlog(id) {
@@ -216,4 +229,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   updateAdminUI();
   updateCounter();
   loadBlogs();
+  initBlogEvents();
 });
