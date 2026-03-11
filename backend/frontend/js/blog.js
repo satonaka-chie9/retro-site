@@ -170,6 +170,7 @@ function formatDate(dateStr) {
   const date = new Date(dateStr.replace(" ", "T") + "Z");
   return date.toLocaleString("ja-JP");
 }
+
 const blogForm = document.getElementById("blogForm");
 const blogImageInput = document.getElementById("blog_image");
 const fileNameDisplay = document.getElementById("file_name_display");
@@ -205,7 +206,6 @@ if (blogForm) {
         if (fileNameDisplay) fileNameDisplay.innerText = "選択されていません"; // リセット時
         loadBlogs();
       } else {
-...
         const data = await res.json();
         alert(data.error || "投稿に失敗しました");
         await fetchCsrfToken();
