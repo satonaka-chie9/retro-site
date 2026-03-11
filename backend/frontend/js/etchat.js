@@ -335,7 +335,7 @@ if (chatForm) {
   });
 }
 
-socket.on("chat", (data) => {
+function addChatMessage(data) {
   const msgDiv = document.createElement("div");
   msgDiv.className = "chat_message_item";
   
@@ -352,6 +352,17 @@ socket.on("chat", (data) => {
     chatMessages.appendChild(msgDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
+}
+
+socket.on("chat", (data) => {
+  addChatMessage(data);
+});
+
+socket.on("chat_history", (history) => {
+  if (chatMessages) chatMessages.innerHTML = "";
+  history.forEach(data => {
+    addChatMessage(data);
+  });
 });
 
 async function updateCounter() {

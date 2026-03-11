@@ -167,6 +167,15 @@ app.use("/uploads", express.static(UPLOAD_DIR));
 // ===== 絵茶ソケット =====
 const chatRateLimits = new Map();
 io.on("connection", (socket) => {
+  // 接続時にチャット履歴を送信 (最新50件)
+  db.all("SELECT * FROM (SELECT * FROM chat_messages ORDER BY id DESC LIMIT 50) ORDER BY id ASC", [], (err, rows) => {
+    if (err) {
+      console.error("Chat history error:", err);
+    } else {
+      socket.emit("chat_history", rows);
+    }
+  });
+
   socket.on("drawing", (data) => {
     socket.broadcast.emit("drawing", data);
   });
@@ -199,6 +208,12 @@ io.on("connection", (socket) => {
     let finalName = name || "名無しさん";
     validTimestamps.push(now);
     chatRateLimits.set(socket.id, validTimestamps);
+
+    // データベースに保存
+    db.run("INSERT INTO chat_messages (name, message, device_id) VALUES (?, ?, ?)", [finalName, message, device_id], (err) => {
+      if (err) console.error("Chat save error:", err);
+    });
+
     io.emit("chat", { name: finalName, message, used_name: finalName });
   });
   socket.on("disconnect", () => {
