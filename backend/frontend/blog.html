@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Retro Site - Blog</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<h1 class="title">BLOG</h1>
+<hr>
+
+<div class="layout">
+
+  <!-- サイドバー -->
+  <div class="side_menu">
+    <a href="index.html">TOP</a>
+    <a href="bbs.html">BBS</a>
+    <a href="etchat.html">絵チャ</a>
+    <a href="profile.html">PROFILE</a>
+
+    <p class="menu_title">アクセスカウンタ</p>
+    <div class="counter" id="counter">
+      <span>000000</span>
+    </div>
+
+    <p class="menu_title">管理者用</p>
+    <div id="admin-login-area">
+      <input type="text" id="admin-user" placeholder="USER" style="width:80px; margin-bottom:5px;"><br>
+      <input type="password" id="admin-pass" placeholder="PASS" style="width:80px; margin-bottom:5px;"><br>
+      <button id="admin-login-btn">LOGIN</button>
+      <div id="admin-msg" style="font-size:12px; color:#FF0000; margin-top:5px;"></div>
+    </div>
+    <div id="admin-logout-area" style="display:none;">
+      <button id="admin-logout-btn">LOGOUT</button>
+    </div>
+  </div>
+
+  <!-- メインコンテンツ -->
+  <div class="main_content">
+    
+    <!-- 管理者用投稿フォーム (デフォルト非表示) -->
+    <div id="blog_post_form" class="post_form" style="display:none; border:2px solid #00FF00; margin-bottom:20px;">
+      <h2>ブログ投稿（管理者専用）</h2>
+      <form id="blogForm" enctype="multipart/form-data">
+        <div>
+          タイトル：<input type="text" id="blog_title" name="title" size="40" required>
+        </div>
+        <div style="margin-top:10px;">
+          画像：
+          <label for="blog_image" style="
+            display: inline-block;
+            background-color: #333;
+            color: #00FF00;
+            border: 2px outset #666;
+            padding: 2px 8px;
+            cursor: pointer;
+            font-size: 13px;
+          ">ファイルを選択...</label>
+          <input type="file" id="blog_image" name="image" accept="image/*" style="display:none;">
+          <span id="file_name_display" style="font-size: 11px; margin-left: 5px; color: #888;">選択されていません</span>
+        </div>
+        <div style="margin-top:10px;">
+          本文：<br>
+          <textarea id="blog_content" name="content" cols="60" rows="10" required></textarea>
+        </div>
+        <div style="margin-top:10px;">
+          <input type="submit" value="投稿する">
+        </div>
+      </form>
+    </div>
+
+    <!-- ブログ記事一覧 -->
+    <div id="blog_container">
+      <p>読み込み中...</p>
+    </div>
+
+  </div>
+
+</div>
+
+<script src="js/blog.js"></script>
+</body>
+</html>

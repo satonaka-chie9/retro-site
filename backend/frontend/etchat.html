@@ -46,7 +46,12 @@
 
 canvas {
   border: 1px solid #aaa;
-  background: white;
+  background: #808080;
+}
+.tool-btn.active {
+  background-color: #00FF00;
+  color: black;
+  border-style: inset;
 }
 </style>
 </head>
@@ -61,6 +66,7 @@ canvas {
   <div class="side_menu">
     <a href="index.html">TOP</a>
     <a href="bbs.html">BBS</a>
+    <a href="blog.html">BLOG</a>
     <a href="profile.html">PROFILE</a>
 
     <p class="menu_title">アクセスカウンタ</p>
@@ -79,8 +85,11 @@ canvas {
         <div class="controls">
           色：<input type="color" id="colorPicker" value="#000000">
           太さ：<input type="range" id="brushSize" min="1" max="20" value="3">
-          <button id="btn_pen">ペン</button>
-          <button id="btn_eraser">消しゴム</button>
+          <button id="btn_pen" class="tool-btn active" data-tool="pen">ペン</button>
+          <button id="btn_line" class="tool-btn" data-tool="line">直線</button>
+          <button id="btn_rect" class="tool-btn" data-tool="rect">四角</button>
+          <button id="btn_fill" class="tool-btn" data-tool="fill">塗りつぶし</button>
+          <button id="btn_eraser" class="tool-btn" data-tool="eraser">消しゴム</button>
           ｜
           <button id="btn_undo">戻る</button>
           <button id="btn_redo">進む</button>

@@ -1,4 +1,15 @@
 const API_BASE = "";
+let csrfToken = "";
+
+async function fetchCsrfToken() {
+  try {
+    const res = await fetch(API_BASE + "/api/csrf-token");
+    const data = await res.json();
+    csrfToken = data.csrfToken;
+  } catch (err) {
+    console.error("Failed to fetch CSRF token:", err);
+  }
+}
 
 function getDeviceId() {
   let deviceId = localStorage.getItem("device_id");
@@ -32,10 +43,15 @@ async function adminLogin() {
     msgArea.innerText = "認証中...";
   }
 
+  if (!csrfToken) await fetchCsrfToken();
+
   try {
-    const res = await fetch("/api/admin/login", {
+    const res = await fetch(API_BASE + "/api/admin/login", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken
+      },
       body: JSON.stringify({ username, password })
     });
 
@@ -56,6 +72,7 @@ async function adminLogin() {
         msgArea.innerText = "ID/PASSが違います";
       }
       localStorage.removeItem("admin_token");
+      await fetchCsrfToken();
     }
   } catch (err) {
     if (msgArea) {
@@ -200,9 +217,14 @@ if (postForm) {
 
     localStorage.setItem("bbs_user_name", name);
 
+    if (!csrfToken) await fetchCsrfToken();
+
     const res = await fetch(API_BASE + "/api/posts", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken
+      },
       body: JSON.stringify({
         name,
         content,
@@ -220,6 +242,7 @@ if (postForm) {
     } else {
       const errorData = await res.json();
       alert(errorData.error || "投稿に失敗しました。");
+      await fetchCsrfToken();
     }
   });
 }
@@ -228,11 +251,14 @@ async function editPost(id, currentName, currentContent) {
   const newContent = prompt("内容を編集", currentContent);
   if (!newContent) return;
 
+  if (!csrfToken) await fetchCsrfToken();
+
   const res = await fetch(API_BASE + "/api/posts/" + id, {
     method: "PUT",
     headers: { 
       "Content-Type": "application/json",
-      "X-Admin-Token": getAdminToken()
+      "X-Admin-Token": getAdminToken(),
+      "X-CSRF-Token": csrfToken
     },
     body: JSON.stringify({
       name: currentName,
@@ -247,17 +273,21 @@ async function editPost(id, currentName, currentContent) {
   } else {
     const data = await res.json();
     alert(data.error || "編集に失敗しました。");
+    await fetchCsrfToken();
   }
 }
 
 async function deletePost(id) {
   if (!confirm("本当に削除しますか？")) return;
 
+  if (!csrfToken) await fetchCsrfToken();
+
   const res = await fetch(API_BASE + "/api/posts/" + id, {
     method: "DELETE",
     headers: { 
       "Content-Type": "application/json",
-      "X-Admin-Token": getAdminToken()
+      "X-Admin-Token": getAdminToken(),
+      "X-CSRF-Token": csrfToken
     },
     body: JSON.stringify({
       device_id: getDeviceId(),
@@ -270,6 +300,7 @@ async function deletePost(id) {
   } else {
     const data = await res.json();
     alert(data.error || "削除に失敗しました。");
+    await fetchCsrfToken();
   }
 }
 
@@ -295,7 +326,8 @@ async function updateCounter() {
 }
 
 // 初期化
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await fetchCsrfToken();
   updateAdminUI();
   updateCounter();
   loadPosts();

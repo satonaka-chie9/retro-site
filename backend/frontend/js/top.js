@@ -1,3 +1,15 @@
+let csrfToken = "";
+
+async function fetchCsrfToken() {
+  try {
+    const res = await fetch("/api/csrf-token");
+    const data = await res.json();
+    csrfToken = data.csrfToken;
+  } catch (err) {
+    console.error("Failed to fetch CSRF token:", err);
+  }
+}
+
 function getDeviceId() {
   let deviceId = localStorage.getItem("device_id");
   if (!deviceId) {
@@ -28,10 +40,16 @@ async function adminLogin() {
     msgArea.innerText = "認証中...";
   }
 
+  // トークンがない場合は再取得を試みる
+  if (!csrfToken) await fetchCsrfToken();
+
   try {
     const res = await fetch("/api/admin/login", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken
+      },
       body: JSON.stringify({ username, password })
     });
 
@@ -49,6 +67,8 @@ async function adminLogin() {
         msgArea.innerText = data.error || "ID/PASSが違います";
       }
       localStorage.removeItem("admin_token");
+      // エラー時はトークンを再取得（有効期限切れなどの対策）
+      await fetchCsrfToken();
     }
   } catch (err) {
     if (msgArea) {
@@ -70,21 +90,199 @@ function updateAdminUI() {
   const logoutArea = document.getElementById("admin-logout-area");
   const loginBtn = document.getElementById("admin-login-btn");
   const logoutBtn = document.getElementById("admin-logout-btn");
+  const newsPostArea = document.getElementById("news-post-area");
 
   if (token) {
     if (loginArea) loginArea.style.display = "none";
     if (logoutArea) logoutArea.style.display = "block";
+    if (newsPostArea) newsPostArea.style.display = "block";
     if (logoutBtn) {
       logoutBtn.onclick = adminLogout;
     }
   } else {
     if (loginArea) loginArea.style.display = "block";
     if (logoutArea) logoutArea.style.display = "none";
+    if (newsPostArea) newsPostArea.style.display = "none";
     if (loginBtn) {
       loginBtn.onclick = adminLogin;
     }
   }
 }
+
+async function fetchNews() {
+  const listEl = document.getElementById("news-list");
+  if (!listEl) return;
+
+  try {
+    const res = await fetch("/api/news");
+    const newsItems = await res.json();
+    
+    if (newsItems.length === 0) {
+      listEl.innerHTML = '<p style="color: #666;">お知らせはありません。</p>';
+      return;
+    }
+
+    const isAdmin = getAdminToken().length > 0;
+
+    listEl.innerHTML = newsItems.map(item => {
+      const dateVal = item.created_at || item.updated_at;
+      const dateStr = dateVal 
+        ? new Date(dateVal.replace(" ", "T") + "Z").toLocaleDateString("ja-JP")
+        : "日付不明";
+      
+      return `
+        <div class="news-item" id="news-item-${item.id}" style="margin-bottom: 15px; border-bottom: 1px dotted #333; padding-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px;">
+            <span style="font-size: 0.8em; color: #888;">[${dateStr}]</span>
+            ${isAdmin ? `
+              <div style="font-size: 11px;">
+                <button class="news-btn" data-id="${item.id}" data-action="edit">編集</button>
+                <button class="news-btn" data-id="${item.id}" data-action="delete">削除</button>
+              </div>
+            ` : ''}
+          </div>
+          <p class="news-content-text" id="news-content-${item.id}" style="margin: 0; white-space: pre-wrap; line-height: 1.4;">${item.content}</p>
+          
+          <!-- 編集フォーム (初期非表示) -->
+          <div class="news-edit-form" id="news-edit-form-${item.id}" style="display: none; margin-top: 10px;">
+            <textarea id="news-edit-input-${item.id}" style="width: 100%; height: 50px; background-color: #222; color: #00FF00; border: 1px solid #00FF00;"></textarea>
+            <div style="margin-top: 5px;">
+              <button class="news-btn" data-id="${item.id}" data-action="save">保存</button>
+              <button class="news-btn" data-id="${item.id}" data-action="cancel">キャンセル</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  } catch (err) {
+    listEl.innerHTML = '<p style="color: #F00;">お知らせの読み込みに失敗しました。</p>';
+  }
+}
+
+// イベント委譲によるお知らせ操作
+function initNewsEvents() {
+  const listEl = document.getElementById("news-list");
+  if (!listEl) return;
+
+  listEl.addEventListener("click", (e) => {
+    const btn = e.target.closest(".news-btn");
+    if (!btn) return;
+
+    const id = btn.dataset.id;
+    const action = btn.dataset.action;
+
+    if (action === "edit") startEditNews(id);
+    else if (action === "delete") deleteNews(id);
+    else if (action === "save") saveEditNews(id);
+    else if (action === "cancel") cancelEditNews(id);
+  });
+}
+
+// 新規投稿機能の初期化
+function initNewsPosting() {
+  const postBtn = document.getElementById("news-post-btn");
+  const inputEl = document.getElementById("news-new-input");
+  if (!postBtn) return;
+
+  postBtn.onclick = async () => {
+    const content = inputEl.value;
+    if (!content) return;
+    if (!csrfToken) await fetchCsrfToken();
+
+    try {
+      const res = await fetch("/api/news", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+          "X-Admin-Token": getAdminToken()
+        },
+        body: JSON.stringify({ content })
+      });
+
+      if (res.ok) {
+        inputEl.value = "";
+        fetchNews();
+      } else {
+        const data = await res.json();
+        alert(data.error || "投稿に失敗しました。");
+        await fetchCsrfToken();
+      }
+    } catch (err) {
+      alert("通信エラーが発生しました。");
+    }
+  };
+}
+
+// 編集・削除関連のグローバル関数
+window.startEditNews = (id) => {
+  const textEl = document.getElementById(`news-content-${id}`);
+  const formEl = document.getElementById(`news-edit-form-${id}`);
+  const inputEl = document.getElementById(`news-edit-input-${id}`);
+  inputEl.value = textEl.innerText;
+  textEl.style.display = "none";
+  formEl.style.display = "block";
+};
+
+window.cancelEditNews = (id) => {
+  const textEl = document.getElementById(`news-content-${id}`);
+  const formEl = document.getElementById(`news-edit-form-${id}`);
+  textEl.style.display = "block";
+  formEl.style.display = "none";
+};
+
+window.saveEditNews = async (id) => {
+  const inputEl = document.getElementById(`news-edit-input-${id}`);
+  const content = inputEl.value;
+  if (!csrfToken) await fetchCsrfToken();
+
+  try {
+    const res = await fetch(`/api/news/${id}`, {
+      method: "PUT",
+      headers: { 
+        "Content-Type": "application/json",
+        "X-CSRF-Token": csrfToken,
+        "X-Admin-Token": getAdminToken()
+      },
+      body: JSON.stringify({ content })
+    });
+
+    if (res.ok) {
+      fetchNews();
+    } else {
+      const data = await res.json();
+      alert(data.error || "更新に失敗しました。");
+      await fetchCsrfToken();
+    }
+  } catch (err) {
+    alert("エラーが発生しました。");
+  }
+};
+
+window.deleteNews = async (id) => {
+  if (!confirm("この記事を削除しますか？")) return;
+  if (!csrfToken) await fetchCsrfToken();
+
+  try {
+    const res = await fetch(`/api/news/${id}`, {
+      method: "DELETE",
+      headers: { 
+        "X-CSRF-Token": csrfToken,
+        "X-Admin-Token": getAdminToken()
+      }
+    });
+
+    if (res.ok) {
+      fetchNews();
+    } else {
+      const data = await res.json();
+      alert(data.error || "削除に失敗しました。");
+      await fetchCsrfToken();
+    }
+  } catch (err) {
+    alert("エラーが発生しました。");
+  }
+};
 
 async function updateCounter() {
   const device_id = getDeviceId();
@@ -106,9 +304,13 @@ async function updateCounter() {
 }
 
 // ページ読み込み完了時に実行
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await fetchCsrfToken(); // 最初にトークンを取得
   updateAdminUI();
   updateCounter();
+  fetchNews();
+  initNewsPosting();
+  initNewsEvents(); // イベントリスナーの設定
 });
 
 // 万が一 DOMContentLoaded が発火済みのケースに対応
