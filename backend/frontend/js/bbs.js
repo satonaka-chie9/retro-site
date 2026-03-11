@@ -163,8 +163,8 @@ async function loadPosts() {
     
     div.innerHTML = `
       <div class="post_header">
-        No.${post.id} ${post.name}
-        ${created} ${editedMark}
+        No.<span class="post-id"></span> <span class="post-name"></span>
+        <span class="post-date"></span> <span class="post-edited"></span>
       </div>
       <pre class="post_body"></pre>
       <div class="post_footer">
@@ -175,6 +175,10 @@ async function loadPosts() {
       </div>
     `;
 
+    div.querySelector(".post-id").textContent = post.id;
+    div.querySelector(".post-name").textContent = post.name;
+    div.querySelector(".post-date").textContent = created;
+    div.querySelector(".post-edited").textContent = editedMark;
     div.querySelector(".post_body").textContent = post.content;
 
     const editBtn = div.querySelector(".edit-btn");

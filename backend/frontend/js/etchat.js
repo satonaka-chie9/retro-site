@@ -328,7 +328,16 @@ socket.on("chat", (data) => {
   }
   const msgDiv = document.createElement("div");
   msgDiv.className = "chat_message_item";
-  msgDiv.innerHTML = `<strong>${data.name}</strong>: ${data.message}`;
+  
+  const nameSpan = document.createElement("strong");
+  nameSpan.textContent = data.name;
+  
+  const msgSpan = document.createElement("span");
+  msgSpan.textContent = `: ${data.message}`;
+  
+  msgDiv.appendChild(nameSpan);
+  msgDiv.appendChild(msgSpan);
+
   if (chatMessages) {
     chatMessages.appendChild(msgDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;

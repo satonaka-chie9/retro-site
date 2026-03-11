@@ -107,23 +107,45 @@ async function loadBlogs() {
 
     const isAdmin = getAdminToken().length > 0;
 
-    container.innerHTML = blogs.map(blog => `
-      <div class="post" style="margin-bottom: 30px; border-bottom: 1px dashed #666; padding-bottom: 10px;">
+    container.innerHTML = "";
+    blogs.forEach(blog => {
+      const div = document.createElement("div");
+      div.className = "post";
+      div.style.marginBottom = "30px";
+      div.style.borderBottom = "1px dashed #666";
+      div.style.paddingBottom = "10px";
+
+      div.innerHTML = `
         <div class="post_header" style="font-size: 1.2em; font-weight: bold; color: #00FF00;">
-          ${blog.title} 
-          <span style="font-size: 0.7em; color: #ccc; font-weight: normal;"> - ${formatDate(blog.created_at)}</span>
+          <span class="blog-title"></span>
+          <span class="blog-date" style="font-size: 0.7em; color: #ccc; font-weight: normal;"></span>
         </div>
         <div class="post_body">
-          ${blog.image_url ? `<img src="${blog.image_url}" style="max-width: 100%; margin: 10px 0; border: 1px solid #333;">` : ""}
-          <p style="white-space: pre-wrap;">${blog.content}</p>
+          <div class="blog-image-container"></div>
+          <p class="blog-content" style="white-space: pre-wrap;"></p>
         </div>
         ${isAdmin ? `
           <div style="margin-top: 10px;">
             <button class="blog-delete-btn" data-id="${blog.id}" style="font-size: 10px;">削除</button>
           </div>
         ` : ""}
-      </div>
-    `).join("");
+      `;
+
+      div.querySelector(".blog-title").textContent = blog.title;
+      div.querySelector(".blog-date").textContent = ` - ${formatDate(blog.created_at)}`;
+      div.querySelector(".blog-content").textContent = blog.content;
+
+      if (blog.image_url) {
+        const img = document.createElement("img");
+        img.src = blog.image_url;
+        img.style.maxWidth = "100%";
+        img.style.margin = "10px 0";
+        img.style.border = "1px solid #333";
+        div.querySelector(".blog-image-container").appendChild(img);
+      }
+
+      container.appendChild(div);
+    });
   } catch (err) {
     container.innerHTML = "<p>記事の読み込みに失敗しました。</p>";
   }
