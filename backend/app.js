@@ -103,13 +103,60 @@ app.post("/api/admin/login", csrfProtection, (req, res) => {
 // 既存のルート
 const counterRoutes = require("./routes/counterRoutes");
 const postRoutes = require("./routes/postRoutes");
+const blogRoutes = require("./routes/blogRoutes");
 app.use("/api/counter", counterRoutes);
 app.use("/api/posts", csrfProtection, postRoutes); // 投稿ルートにもCSRF対策を適用
+app.use("/api/blog", csrfProtection, blogRoutes); // ブログルートにもCSRF適用
+
+// --- お知らせ (News) API ---
+// 管理者認証ミドルウェア (簡易版)
+const adminOnly = (req, res, next) => {
+  const adminToken = req.headers["x-admin-token"];
+  const adminSecret = process.env.ADMIN_TOKEN || "default-secret-token";
+  if (adminToken === adminSecret) {
+    next();
+  } else {
+    res.status(403).json({ error: "管理者権限が必要です" });
+  }
+};
+
+app.get("/api/news", (req, res) => {
+  db.all("SELECT * FROM news ORDER BY created_at DESC", [], (err, rows) => {
+    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    res.json(rows);
+  });
+});
+
+app.post("/api/news", csrfProtection, adminOnly, (req, res) => {
+  const { content } = req.body;
+  db.run("INSERT INTO news (content) VALUES (?)", [content], function(err) {
+    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    res.json({ success: true, id: this.lastID });
+  });
+});
+
+app.put("/api/news/:id", csrfProtection, adminOnly, (req, res) => {
+  const { id } = req.params;
+  const { content } = req.body;
+  db.run("UPDATE news SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [content, id], function(err) {
+    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    res.json({ success: true });
+  });
+});
+
+app.delete("/api/news/:id", csrfProtection, adminOnly, (req, res) => {
+  const { id } = req.params;
+  db.run("DELETE FROM news WHERE id = ?", [id], function(err) {
+    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    res.json({ success: true });
+  });
+});
 
 // 静的ファイルの提供
 const path = require("path");
 
 app.use(express.static(path.join(__dirname, "frontend")));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ===== 絵茶ソケット =====
 const chatRateLimits = new Map();

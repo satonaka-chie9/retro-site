@@ -15,8 +15,10 @@
   <!-- サイドバー -->
   <div class="side_menu">
     <a href="bbs.html">BBS</a>
-    <a href="etchat.html">絵茶</a>
+    <a href="blog.html">BLOG</a>
+    <a href="etchat.html">絵チャ</a>
     <a href="profile.html">PROFILE</a>
+
 
     <p class="menu_title">アクセスカウンタ</p>
     <div class="counter" id="counter">
@@ -39,6 +41,22 @@
     <p>管理人のsatonaka_chie9です。ふと昔のサイトを再現してみたくて作ってみました。</p>
     <p>みんな仲良くね！</p>
     <hr>
+    <!-- お知らせ欄 -->
+    <div id="news-section" style="margin-top: 20px; border: 1px double #00FF00; padding: 15px; background-color: #111;">
+      <h3 style="color: #00FF00; margin-top: 0; border-bottom: 1px solid #00FF00;">◆ お知らせ</h3>
+      
+      <!-- 管理者用新規投稿フォーム -->
+      <div id="news-post-area" style="display:none; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px dashed #444;">
+        <p style="color: #00FF00; font-size: 0.9em; margin-top: 0;">新規お知らせ投稿:</p>
+        <textarea id="news-new-input" style="width: 100%; height: 60px; background-color: #222; color: #00FF00; border: 1px solid #00FF00; font-family: monospace;"></textarea>
+        <button id="news-post-btn" style="margin-top: 5px;">投稿</button>
+      </div>
+
+      <!-- お知らせリスト表示エリア -->
+      <div id="news-list">
+        <p style="color: #888;">読み込み中...</p>
+      </div>
+    </div>
   </div>
 
 </div>

@@ -71,6 +71,28 @@ db.serialize(() => {
     )
   `);
 
+  // お知らせテーブルの作成
+  db.run(`
+    CREATE TABLE IF NOT EXISTS news (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      content TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // blog articlesテーブルの作成
+  db.run(`
+    CREATE TABLE IF NOT EXISTS articles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT,
+      content TEXT,
+      image_url TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME
+    )
+  `);
+
   // 初期管理者アカウントの作成 (環境変数の値で常に更新する)
   const adminPassword = process.env.ADMIN_PASSWORD || 'default_secure_password';
   db.run(`
