@@ -299,11 +299,27 @@ const chatInput = document.getElementById("chatInput");
 const chatName = document.getElementById("chatName");
 const chatMessages = document.getElementById("chat_messages");
 
+function getDeviceId() {
+  let deviceId = localStorage.getItem("device_id");
+  if (!deviceId) {
+    deviceId = crypto.randomUUID();
+    localStorage.setItem("device_id", deviceId);
+  }
+  return deviceId;
+}
+
 function restoreChatName() {
   const savedName = localStorage.getItem("bbs_user_name");
   if (savedName && chatName) {
     chatName.value = savedName;
   }
+}
+
+// 入力時に保存するようにして、送信しなくても保持されるようにする
+if (chatName) {
+  chatName.addEventListener("input", (e) => {
+    localStorage.setItem("bbs_user_name", e.target.value);
+  });
 }
 
 if (chatForm) {
@@ -313,19 +329,13 @@ if (chatForm) {
     const message = chatInput.value;
     localStorage.setItem("bbs_user_name", name);
     if (message) {
-      socket.emit("chat", { name, message, device_id: localStorage.getItem("device_id") });
+      socket.emit("chat", { name, message, device_id: getDeviceId() });
       chatInput.value = "";
     }
   });
 }
 
 socket.on("chat", (data) => {
-  if (data.used_name && localStorage.getItem("bbs_user_name") !== data.used_name) {
-    if (chatName && chatName.value === localStorage.getItem("bbs_user_name")) {
-      localStorage.setItem("bbs_user_name", data.used_name);
-      chatName.value = data.used_name;
-    }
-  }
   const msgDiv = document.createElement("div");
   msgDiv.className = "chat_message_item";
   
@@ -345,7 +355,7 @@ socket.on("chat", (data) => {
 });
 
 async function updateCounter() {
-  const device_id = localStorage.getItem("device_id") || "guest";
+  const device_id = getDeviceId();
   try {
     await fetch("/api/counter/increment", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ device_id }) });
     const res = await fetch("/api/counter");
