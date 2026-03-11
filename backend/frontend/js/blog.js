@@ -170,8 +170,17 @@ function formatDate(dateStr) {
   const date = new Date(dateStr.replace(" ", "T") + "Z");
   return date.toLocaleString("ja-JP");
 }
-
 const blogForm = document.getElementById("blogForm");
+const blogImageInput = document.getElementById("blog_image");
+const fileNameDisplay = document.getElementById("file_name_display");
+
+if (blogImageInput && fileNameDisplay) {
+  blogImageInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    fileNameDisplay.innerText = file ? file.name : "選択されていません";
+  });
+}
+
 if (blogForm) {
   blogForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -193,8 +202,10 @@ if (blogForm) {
 
       if (res.ok) {
         blogForm.reset();
+        if (fileNameDisplay) fileNameDisplay.innerText = "選択されていません"; // リセット時
         loadBlogs();
       } else {
+...
         const data = await res.json();
         alert(data.error || "投稿に失敗しました");
         await fetchCsrfToken();

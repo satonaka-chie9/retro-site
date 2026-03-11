@@ -47,7 +47,18 @@
           タイトル：<input type="text" id="blog_title" name="title" size="40" required>
         </div>
         <div style="margin-top:10px;">
-          画像：<input type="file" id="blog_image" name="image" accept="image/*">
+          画像：
+          <label for="blog_image" style="
+            display: inline-block;
+            background-color: #333;
+            color: #00FF00;
+            border: 2px outset #666;
+            padding: 2px 8px;
+            cursor: pointer;
+            font-size: 13px;
+          ">ファイルを選択...</label>
+          <input type="file" id="blog_image" name="image" accept="image/*" style="display:none;">
+          <span id="file_name_display" style="font-size: 11px; margin-left: 5px; color: #888;">選択されていません</span>
         </div>
         <div style="margin-top:10px;">
           本文：<br>

@@ -166,9 +166,10 @@ app.delete("/api/news/:id", csrfProtection, adminOnly, (req, res) => {
 
 // 静的ファイルの提供
 const path = require("path");
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, "uploads");
 
 app.use(express.static(path.join(__dirname, "frontend")));
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(UPLOAD_DIR));
 
 // ===== 絵茶ソケット =====
 const chatRateLimits = new Map();
