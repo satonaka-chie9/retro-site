@@ -121,16 +121,22 @@ const adminOnly = (req, res, next) => {
 };
 
 app.get("/api/news", (req, res) => {
-  db.all("SELECT * FROM news ORDER BY created_at DESC", [], (err, rows) => {
-    if (err) return res.status(500).json({ error: "サーバーエラー" });
-    res.json(rows);
+  db.all("SELECT * FROM news ORDER BY id DESC", [], (err, rows) => {
+    if (err) {
+      console.error("GET /api/news error:", err);
+      return res.status(500).json({ error: "サーバーエラー" });
+    }
+    res.json(rows || []);
   });
 });
 
 app.post("/api/news", csrfProtection, adminOnly, (req, res) => {
   const { content } = req.body;
   db.run("INSERT INTO news (content) VALUES (?)", [content], function(err) {
-    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    if (err) {
+      console.error("POST /api/news error:", err);
+      return res.status(500).json({ error: "サーバーエラー" });
+    }
     res.json({ success: true, id: this.lastID });
   });
 });
@@ -139,7 +145,10 @@ app.put("/api/news/:id", csrfProtection, adminOnly, (req, res) => {
   const { id } = req.params;
   const { content } = req.body;
   db.run("UPDATE news SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [content, id], function(err) {
-    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    if (err) {
+      console.error("PUT /api/news error:", err);
+      return res.status(500).json({ error: "サーバーエラー" });
+    }
     res.json({ success: true });
   });
 });
@@ -147,7 +156,10 @@ app.put("/api/news/:id", csrfProtection, adminOnly, (req, res) => {
 app.delete("/api/news/:id", csrfProtection, adminOnly, (req, res) => {
   const { id } = req.params;
   db.run("DELETE FROM news WHERE id = ?", [id], function(err) {
-    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    if (err) {
+      console.error("DELETE /api/news error:", err);
+      return res.status(500).json({ error: "サーバーエラー" });
+    }
     res.json({ success: true });
   });
 });

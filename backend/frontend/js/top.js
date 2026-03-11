@@ -125,8 +125,10 @@ async function fetchNews() {
     const isAdmin = getAdminToken().length > 0;
 
     listEl.innerHTML = newsItems.map(item => {
-      const date = new Date((item.created_at || item.updated_at).replace(" ", "T") + "Z");
-      const dateStr = date.toLocaleDateString("ja-JP");
+      const dateVal = item.created_at || item.updated_at;
+      const dateStr = dateVal 
+        ? new Date(dateVal.replace(" ", "T") + "Z").toLocaleDateString("ja-JP")
+        : "日付不明";
       
       return `
         <div class="news-item" id="news-item-${item.id}" style="margin-bottom: 15px; border-bottom: 1px dotted #333; padding-bottom: 10px;">
@@ -134,8 +136,8 @@ async function fetchNews() {
             <span style="font-size: 0.8em; color: #888;">[${dateStr}]</span>
             ${isAdmin ? `
               <div style="font-size: 11px;">
-                <button onclick="startEditNews(${item.id})">編集</button>
-                <button onclick="deleteNews(${item.id})">削除</button>
+                <button class="news-btn" data-id="${item.id}" data-action="edit">編集</button>
+                <button class="news-btn" data-id="${item.id}" data-action="delete">削除</button>
               </div>
             ` : ''}
           </div>
@@ -145,8 +147,8 @@ async function fetchNews() {
           <div class="news-edit-form" id="news-edit-form-${item.id}" style="display: none; margin-top: 10px;">
             <textarea id="news-edit-input-${item.id}" style="width: 100%; height: 50px; background-color: #222; color: #00FF00; border: 1px solid #00FF00;"></textarea>
             <div style="margin-top: 5px;">
-              <button onclick="saveEditNews(${item.id})">保存</button>
-              <button onclick="cancelEditNews(${item.id})">キャンセル</button>
+              <button class="news-btn" data-id="${item.id}" data-action="save">保存</button>
+              <button class="news-btn" data-id="${item.id}" data-action="cancel">キャンセル</button>
             </div>
           </div>
         </div>
@@ -155,6 +157,25 @@ async function fetchNews() {
   } catch (err) {
     listEl.innerHTML = '<p style="color: #F00;">お知らせの読み込みに失敗しました。</p>';
   }
+}
+
+// イベント委譲によるお知らせ操作
+function initNewsEvents() {
+  const listEl = document.getElementById("news-list");
+  if (!listEl) return;
+
+  listEl.addEventListener("click", (e) => {
+    const btn = e.target.closest(".news-btn");
+    if (!btn) return;
+
+    const id = btn.dataset.id;
+    const action = btn.dataset.action;
+
+    if (action === "edit") startEditNews(id);
+    else if (action === "delete") deleteNews(id);
+    else if (action === "save") saveEditNews(id);
+    else if (action === "cancel") cancelEditNews(id);
+  });
 }
 
 // 新規投稿機能の初期化
@@ -289,6 +310,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateCounter();
   fetchNews();
   initNewsPosting();
+  initNewsEvents(); // イベントリスナーの設定
 });
 
 // 万が一 DOMContentLoaded が発火済みのケースに対応
