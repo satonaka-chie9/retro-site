@@ -101,6 +101,17 @@ db.serialize(() => {
     )
   `);
 
+  // 絵茶チャット履歴テーブルの作成
+  db.run(`
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      message TEXT,
+      device_id TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // 初期管理者アカウントの作成 (環境変数の値で常に更新する)
   const adminPassword = process.env.ADMIN_PASSWORD || 'default_secure_password';
   db.run(`
