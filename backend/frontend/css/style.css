@@ -318,7 +318,23 @@ button:active {
 canvas {
   border: 2px solid #00FF00;
   background: #ffffff;
-  cursor: crosshair;
+  cursor: none; /* デフォルトのカーソルを消す */
+}
+
+#canvas-container {
+  line-height: 0;
+}
+
+#brush-cursor {
+  position: absolute;
+  pointer-events: none; /* キャンバスの操作を邪魔しない */
+  border: 1px solid #000;
+  border-radius: 50%;
+  display: none; /* 初期は非表示 */
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.3);
+  mix-blend-mode: difference; /* 背景色に関わらず見えやすくする */
+  z-index: 10;
 }
 
 .tool-btn.active {

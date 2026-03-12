@@ -78,6 +78,7 @@ function initClapEvents() {
 
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
+const brushCursor = document.getElementById('brush-cursor');
 
 let drawing = false;
 let startX, startY;
@@ -298,6 +299,19 @@ function hexToRgb(hex) {
 
 /* ===== イベントハンドラ ===== */
 
+function updateBrushCursor(e) {
+  if (!brushCursor) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX || (e.touches ? e.touches[0].clientX : 0)) - rect.left;
+  const y = (e.clientY || (e.touches ? e.touches[0].clientY : 0)) - rect.top;
+
+  brushCursor.style.width = current.size + 'px';
+  brushCursor.style.height = current.size + 'px';
+  brushCursor.style.left = (x - current.size / 2) + 'px';
+  brushCursor.style.top = (y - current.size / 2) + 'px';
+  brushCursor.style.display = 'block';
+}
+
 function onMouseDown(e) {
   const rect = canvas.getBoundingClientRect();
   startX = (e.clientX || (e.touches ? e.touches[0].clientX : 0)) - rect.left;
@@ -316,6 +330,7 @@ function onMouseDown(e) {
 }
 
 function onMouseMove(e) {
+  updateBrushCursor(e);
   if (!drawing) return;
   const rect = canvas.getBoundingClientRect();
   const x = (e.clientX || (e.touches ? e.touches[0].clientX : 0)) - rect.left;
@@ -350,6 +365,13 @@ function onMouseUp(e) {
 canvas.addEventListener('mousedown', onMouseDown, false);
 canvas.addEventListener('mousemove', onMouseMove, false);
 window.addEventListener('mouseup', onMouseUp, false);
+
+canvas.addEventListener('mouseenter', (e) => {
+  if (brushCursor) brushCursor.style.display = 'block';
+});
+canvas.addEventListener('mouseleave', (e) => {
+  if (brushCursor) brushCursor.style.display = 'none';
+});
 
 canvas.addEventListener('touchstart', onMouseDown, { passive: false });
 canvas.addEventListener('touchmove', onMouseMove, { passive: false });
