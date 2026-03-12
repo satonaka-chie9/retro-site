@@ -18,9 +18,13 @@ hr {
 /* ===== 共通レイアウト ===== */
 .layout {
   display: flex;
-  justify-content: center; /* 全体中央 */
+  justify-content: center;
   gap: 30px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px;
   width: 100%;
+  box-sizing: border-box;
 }
 
 /* ===== サイドバー ===== */
@@ -28,7 +32,7 @@ hr {
   width: 200px;
   flex-shrink: 0;
   border-right: 2px solid #00FF00;
-  padding-right: 10px;
+  padding-right: 15px;
 }
 
 .side_menu a {
@@ -60,7 +64,9 @@ hr {
 
 /* ===== メインコンテンツ共通 ===== */
 .main_content {
-  width: 600px;
+  flex: 1;
+  max-width: 1100px;
+  min-width: 0;
 }
 
 /* ===== BBS投稿 ===== */
