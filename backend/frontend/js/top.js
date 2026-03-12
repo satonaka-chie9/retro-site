@@ -414,7 +414,7 @@ async function fetchAdminClaps() {
       const item = document.createElement("div");
       item.style.marginBottom = "8px";
       item.style.borderBottom = "1px solid #222";
-      const dateStr = new Date(c.created_at.replace(" ", "T") + "Z").toLocaleString("ja-JP");
+      const dateStr = formatDate(c.created_at);
       item.innerHTML = `
         <span style="color:#888;">[${dateStr}]</span> 
         <span style="color:#00FF00;">${c.message}</span>
