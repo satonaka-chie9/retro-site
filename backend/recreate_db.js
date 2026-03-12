@@ -1,21 +1,28 @@
-const sqlite3 = require("sqlite3").verbose();
-const path = require("path");
-const fs = require("fs");
+const db = require("./db/database");
 
-const dbPath = process.env.DATABASE_PATH || path.join(__dirname, "database.db");
-const db = new sqlite3.Database(dbPath);
-
-db.serialize(() => {
+async function recreateNews() {
   console.log("Recreating news table...");
-  db.run("DROP TABLE IF EXISTS news");
-  db.run(`
-    CREATE TABLE news (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      content TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-  console.log("Done.");
-});
-db.close();
+  db.run("DROP TABLE IF EXISTS news", [], (err) => {
+    if (err) console.error(err);
+    const createSql = db.isPostgres ? 
+      `CREATE TABLE news (
+        id SERIAL PRIMARY KEY,
+        content TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )` :
+      `CREATE TABLE news (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        content TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`;
+      
+    db.run(createSql, [], (err) => {
+      if (err) console.error(err);
+      console.log("Done.");
+    });
+  });
+}
+
+recreateNews();

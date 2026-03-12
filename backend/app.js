@@ -6,6 +6,7 @@ const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const cookieParser = require("cookie-parser");
 const crypto = require("crypto");
+const logger = require("./services/logger");
 
 const app = express();
 const server = http.createServer(app);
@@ -60,6 +61,12 @@ const io = new Server(server, {
 });
 
 app.use(express.json());
+
+// アクセスログ
+app.use((req, res, next) => {
+  logger.logAccess(req);
+  next();
+});
 
 // --- CSRF 対策ミドルウェア ---
 const csrfProtection = (req, res, next) => {
@@ -146,6 +153,7 @@ app.put("/api/news/:id", csrfProtection, adminOnly, (req, res) => {
   const content = escapeHTML(req.body.content);
   db.run("UPDATE news SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [content, id], function(err) {
     if (err) return res.status(500).json({ error: "サーバーエラー" });
+    logger.logAction("EDIT", "news", id, { content });
     res.json({ success: true });
   });
 });
@@ -154,6 +162,7 @@ app.delete("/api/news/:id", csrfProtection, adminOnly, (req, res) => {
   const { id } = req.params;
   db.run("DELETE FROM news WHERE id = ?", [id], function(err) {
     if (err) return res.status(500).json({ error: "サーバーエラー" });
+    logger.logAction("DELETE", "news", id);
     res.json({ success: true });
   });
 });

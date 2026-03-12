@@ -4,6 +4,7 @@ const db = require("../db/database");
 const rateLimit = require("express-rate-limit");
 const { validationResult } = require("express-validator");
 const { postValidation } = require("../validators/postValidator");
+const logger = require("../services/logger");
 
 // 投稿用レート制限: 1分間に5回まで
 const postLimiter = rateLimit({
@@ -140,6 +141,7 @@ router.put("/:id", postValidation, validate, (req, res) => {
           console.error(err);
           return res.status(500).json({ error: "サーバー内部エラーが発生しました" });
         }
+        logger.logAction("EDIT", "post", id, { name, content, device_id });
         res.json({ success: true });
       }
     );
@@ -171,6 +173,7 @@ router.delete("/:id", (req, res) => {
         console.error(err);
         return res.status(500).json({ error: "サーバー内部エラーが発生しました" });
       }
+      logger.logAction("DELETE", "post", id, { device_id });
       res.json({ success: true });
     });
   });
