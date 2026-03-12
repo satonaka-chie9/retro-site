@@ -175,7 +175,22 @@ app.post("/api/claps", (req, res) => {
 
   db.run("INSERT INTO claps (message, ip, device_id) VALUES (?, ?, ?)", [cleanMsg, ip, device_id], (err) => {
     if (err) return res.status(500).json({ error: "サーバーエラー" });
+    
+    // 拍手数を全クライアントに通知
+    db.get("SELECT COUNT(*) as total FROM claps", [], (err, row) => {
+      if (!err && row) {
+        io.emit("clap_update", { total: row.total });
+      }
+    });
+    
     res.json({ success: true });
+  });
+});
+
+app.get("/api/claps/count", (req, res) => {
+  db.get("SELECT COUNT(*) as total FROM claps", [], (err, row) => {
+    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    res.json(row || { total: 0 });
   });
 });
 

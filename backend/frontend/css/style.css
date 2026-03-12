@@ -210,6 +210,17 @@ button:active {
 .clap-btn:hover {
   background: #003300;
 }
+.clap-count-display {
+  display: block;
+  text-align: center;
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  color: #00FF00;
+  margin-bottom: 5px;
+  background: #111;
+  border: 1px solid #00FF00;
+  padding: 2px;
+}
 
 /* ===== 管理者用拍手メッセージ管理 ===== */
 .admin-stats {

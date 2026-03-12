@@ -332,6 +332,24 @@ async function updateCounter() {
 }
 
 // ===== Web 拍手機能 =====
+const socket = io();
+
+async function updateClapCountDisplay() {
+  try {
+    const res = await fetch("/api/claps/count");
+    const data = await res.json();
+    const countEl = document.getElementById("clap-count");
+    if (countEl) countEl.innerText = `${data.total} claps`;
+  } catch (err) {
+    console.error("Clap count error:", err);
+  }
+}
+
+socket.on("clap_update", (data) => {
+  const countEl = document.getElementById("clap-count");
+  if (countEl) countEl.innerText = `${data.total} claps`;
+});
+
 function initClapEvents() {
   const openBtn = document.getElementById("open-clap-modal");
   const closeBtn = document.getElementById("close-clap-modal");
@@ -429,6 +447,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initNewsEvents(); // イベントリスナーの設定
   initClapEvents();
   fetchPublicClaps();
+  updateClapCountDisplay();
 });
 
 // 万が一 DOMContentLoaded が発火済みのケースに対応

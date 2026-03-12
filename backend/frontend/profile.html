@@ -38,6 +38,7 @@
 
     <!-- Web拍手ボタン -->
     <div class="clap-btn-container">
+      <span id="clap-count" class="clap-count-display">0 claps</span>
       <a href="javascript:void(0)" class="clap-btn" id="open-clap-modal">拍手</a>
     </div>
     </div>
@@ -90,6 +91,7 @@
 </div>
 
 <!-- top.jsの読み込み -->
+<script src="/socket.io/socket.io.js"></script>
 <script src="js/top.js"></script>
 </body>
 </html>
