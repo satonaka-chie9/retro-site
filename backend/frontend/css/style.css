@@ -20,7 +20,7 @@ hr {
   display: flex;
   justify-content: center;
   gap: 30px;
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   padding: 0 20px;
   width: 100%;
@@ -65,7 +65,7 @@ hr {
 /* ===== メインコンテンツ共通 ===== */
 .main_content {
   flex: 1;
-  max-width: 1100px;
+  max-width: 1300px;
   min-width: 0;
 }
 
@@ -239,9 +239,15 @@ button:active {
 /* ===== 絵チャ専用レイアウト ===== */
 .draw_chat_wrapper {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap; /* PCでは横並びを維持 */
   gap: 20px;
   align-items: flex-start;
+}
+
+@media (max-width: 1000px) {
+  .draw_chat_wrapper {
+    flex-wrap: wrap; /* 画面が狭い時だけ折り返し */
+  }
 }
 
 .draw_area {
