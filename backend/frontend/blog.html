@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Retro Site - Blog</title>
+  <title>Retro Site - 日記</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -27,45 +27,41 @@
 
     <p class="menu_title">管理者用</p>
     <div id="admin-login-area">
-      <input type="text" id="admin-user" placeholder="USER" style="width:80px; margin-bottom:5px;"><br>
-      <input type="password" id="admin-pass" placeholder="PASS" style="width:80px; margin-bottom:5px;"><br>
+      <input type="text" id="admin-user" placeholder="USER" class="admin-input"><br>
+      <input type="password" id="admin-pass" placeholder="PASS" class="admin-input"><br>
       <button id="admin-login-btn">LOGIN</button>
-      <div id="admin-msg" style="font-size:12px; color:#FF0000; margin-top:5px;"></div>
+      <div id="admin-msg" class="admin-msg-small"></div>
     </div>
-    <div id="admin-logout-area" style="display:none;">
+    <div id="admin-logout-area" class="hidden">
       <button id="admin-logout-btn">LOGOUT</button>
     </div>
-  </div>
 
+    <!-- Web拍手ボタン -->
+    <div class="clap-btn-container">
+      <a href="javascript:void(0)" class="clap-btn" id="open-clap-modal">拍手</a>
+    </div>
+    </div>
   <!-- メインコンテンツ -->
   <div class="main_content">
     
     <!-- 管理者用投稿フォーム (デフォルト非表示) -->
-    <div id="blog_post_form" class="post_form" style="display:none; border:2px solid #00FF00; margin-bottom:20px;">
+    <div id="blog_post_form" class="post_form hidden">
       <h2>ブログ投稿（管理者専用）</h2>
       <form id="blogForm" enctype="multipart/form-data">
         <div>
           タイトル：<input type="text" id="blog_title" name="title" size="40" required>
         </div>
-        <div style="margin-top:10px;">
+        <div class="mt-10">
           画像：
-          <label for="blog_image" style="
-            display: inline-block;
-            background-color: #333;
-            color: #00FF00;
-            border: 2px outset #666;
-            padding: 2px 8px;
-            cursor: pointer;
-            font-size: 13px;
-          ">ファイルを選択...</label>
-          <input type="file" id="blog_image" name="image" accept="image/*" style="display:none;">
-          <span id="file_name_display" style="font-size: 11px; margin-left: 5px; color: #888;">選択されていません</span>
+          <label for="blog_image" class="file-upload-label">ファイルを選択...</label>
+          <input type="file" id="blog_image" name="image" accept="image/*" class="hidden">
+          <span id="file_name_display" class="fs-11 ml-5 text-gray">選択されていません</span>
         </div>
-        <div style="margin-top:10px;">
+        <div class="mt-10">
           本文：<br>
           <textarea id="blog_content" name="content" cols="60" rows="10" required></textarea>
         </div>
-        <div style="margin-top:10px;">
+        <div class="mt-10">
           <input type="submit" value="投稿する">
         </div>
       </form>
@@ -78,6 +74,18 @@
 
   </div>
 
+</div>
+
+<!-- 拍手用モーダル -->
+<div id="clap-overlay"></div>
+<div id="clap-modal">
+  <h3>👏 拍手</h3>
+  <p class="clap-modal-desc">管理人に一言メッセージをどうぞ！<br>(拍手だけでもOKです)</p>
+  <textarea id="clap-message" class="clap-textarea"></textarea>
+  <div class="flex-between">
+    <button id="send-clap" class="flex-1 mr-5">送信</button>
+    <button id="close-clap-modal" class="flex-1">閉じる</button>
+  </div>
 </div>
 
 <script src="js/blog.js"></script>

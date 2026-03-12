@@ -399,26 +399,22 @@ async function fetchAdminClaps() {
     if (claps.length === 0) return;
 
     const clapSection = document.createElement("div");
-    clapSection.style.marginTop = "30px";
-    clapSection.style.border = "1px solid #00FF00";
-    clapSection.style.padding = "10px";
-    clapSection.innerHTML = `<h3 style="margin-top:0; color:#00FF00; border-bottom:1px solid #00FF00;">◆ 拍手メッセージ (最新100件)</h3>`;
+    clapSection.className = "admin-clap-section";
+    clapSection.innerHTML = `<h3>◆ 拍手メッセージ (最新100件)</h3>`;
     
     const list = document.createElement("div");
-    list.style.maxHeight = "300px";
-    list.style.overflowY = "auto";
-    list.style.fontSize = "12px";
+    list.className = "admin-clap-list";
 
     claps.forEach(c => {
       if (!c.message) return;
       const item = document.createElement("div");
-      item.style.marginBottom = "8px";
-      item.style.borderBottom = "1px solid #222";
+      item.className = "admin-clap-item";
       const dateStr = formatDate(c.created_at);
       item.innerHTML = `
-        <span style="color:#888;">[${dateStr}]</span> 
-        <span style="color:#00FF00;">${c.message}</span>
+        <span class="date">[${dateStr}]</span> 
+        <span class="msg"></span>
       `;
+      item.querySelector(".msg").textContent = c.message;
       list.appendChild(item);
     });
 

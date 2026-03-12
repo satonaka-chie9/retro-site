@@ -94,6 +94,65 @@ function updateAdminUI() {
   }
 }
 
+function getDeviceId() {
+  let deviceId = localStorage.getItem("device_id");
+  if (!deviceId) {
+    deviceId = crypto.randomUUID();
+    localStorage.setItem("device_id", deviceId);
+  }
+  return deviceId;
+}
+
+// ===== Web 拍手機能 =====
+function initClapEvents() {
+  const openBtn = document.getElementById("open-clap-modal");
+  const closeBtn = document.getElementById("close-clap-modal");
+  const sendBtn = document.getElementById("send-clap");
+  const modal = document.getElementById("clap-modal");
+  const overlay = document.getElementById("clap-overlay");
+  const messageInput = document.getElementById("clap-message");
+
+  if (!openBtn || !modal || !overlay) return;
+
+  const openModal = () => {
+    modal.style.display = "block";
+    overlay.style.display = "block";
+    messageInput.value = "";
+    messageInput.focus();
+  };
+
+  const closeModal = () => {
+    modal.style.display = "none";
+    overlay.style.display = "none";
+  };
+
+  openBtn.addEventListener("click", openModal);
+  closeBtn.addEventListener("click", closeModal);
+  overlay.addEventListener("click", closeModal);
+
+  sendBtn.addEventListener("click", async () => {
+    const message = messageInput.value;
+    const device_id = getDeviceId();
+
+    try {
+      const res = await fetch("/api/claps", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, device_id })
+      });
+
+      if (res.ok) {
+        alert("拍手を送信しました！ありがとうございます！");
+        closeModal();
+      } else {
+        alert("送信に失敗しました。");
+      }
+    } catch (err) {
+      alert("通信エラーが発生しました。");
+    }
+  });
+}
+
 async function loadBlogs() {
   const container = document.getElementById("blog_container");
   try {
@@ -278,4 +337,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   updateCounter();
   loadBlogs();
   initBlogEvents();
+  initClapEvents();
 });

@@ -15,7 +15,7 @@
   <!-- サイドバー -->
   <div class="side_menu">
     <a href="index.html">TOP</a>
-    <a href="blog.html">BLOG</a>
+    <a href="blog.html">日記</a>
     <a href="etchat.html">絵チャ</a>
     <a href="profile.html">PROFILE</a>
 
@@ -23,17 +23,22 @@
     <div class="counter" id="counter">
       <span>000000</span>
     </div>
-    <p class="menu_title">キリ番はBBSにて報告ください</p>
+    <p class="menu_title">キリ番はBBSまたは拍手にて報告ください</p>
 
     <p class="menu_title">管理者用</p>
     <div id="admin-login-area">
-      <input type="text" id="admin-user" placeholder="USER" style="width:80px; margin-bottom:5px;"><br>
-      <input type="password" id="admin-pass" placeholder="PASS" style="width:80px; margin-bottom:5px;"><br>
+      <input type="text" id="admin-user" placeholder="USER" class="admin-input"><br>
+      <input type="password" id="admin-pass" placeholder="PASS" class="admin-input"><br>
       <button id="admin-login-btn">LOGIN</button>
-      <div id="admin-msg" style="font-size:12px; color:#FF0000; margin-top:5px;"></div>
+      <div id="admin-msg" class="admin-msg-small"></div>
     </div>
-    <div id="admin-logout-area" style="display:none;">
+    <div id="admin-logout-area" class="hidden">
       <button id="admin-logout-btn">LOGOUT</button>
+    </div>
+
+    <!-- Web拍手ボタン -->
+    <div class="clap-btn-container">
+      <a href="javascript:void(0)" class="clap-btn" id="open-clap-modal">拍手</a>
     </div>
     </div>
   <!-- メインコンテンツ -->
@@ -64,6 +69,18 @@
 
   </div>
 
+</div>
+
+<!-- 拍手用モーダル -->
+<div id="clap-overlay"></div>
+<div id="clap-modal">
+  <h3>👏 拍手</h3>
+  <p class="clap-modal-desc">管理人に一言メッセージをどうぞ！<br>(拍手だけでもOKです)</p>
+  <textarea id="clap-message" class="clap-textarea"></textarea>
+  <div class="flex-between">
+    <button id="send-clap" class="flex-1 mr-5">送信</button>
+    <button id="close-clap-modal" class="flex-1">閉じる</button>
+  </div>
 </div>
 
 <script src="js/bbs.js"></script>
