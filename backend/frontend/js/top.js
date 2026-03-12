@@ -313,6 +313,104 @@ async function updateCounter() {
   }
 }
 
+// ===== Web 拍手機能 =====
+function initClapEvents() {
+  const openBtn = document.getElementById("open-clap-modal");
+  const closeBtn = document.getElementById("close-clap-modal");
+  const sendBtn = document.getElementById("send-clap");
+  const modal = document.getElementById("clap-modal");
+  const overlay = document.getElementById("clap-overlay");
+  const messageInput = document.getElementById("clap-message");
+
+  if (!openBtn || !modal || !overlay) return;
+
+  const openModal = () => {
+    modal.style.display = "block";
+    overlay.style.display = "block";
+    messageInput.value = "";
+    messageInput.focus();
+  };
+
+  const closeModal = () => {
+    modal.style.display = "none";
+    overlay.style.display = "none";
+  };
+
+  openBtn.addEventListener("click", openModal);
+  closeBtn.addEventListener("click", closeModal);
+  overlay.addEventListener("click", closeModal);
+
+  sendBtn.addEventListener("click", async () => {
+    const message = messageInput.value;
+    const device_id = getDeviceId();
+
+    try {
+      const res = await fetch("/api/claps", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, device_id })
+      });
+
+      if (res.ok) {
+        alert("拍手を送信しました！ありがとうございます！");
+        closeModal();
+      } else {
+        alert("送信に失敗しました。");
+      }
+    } catch (err) {
+      alert("通信エラーが発生しました。");
+    }
+  });
+}
+
+// 管理者用拍手メッセージ表示
+async function fetchAdminClaps() {
+  const token = getAdminToken();
+  if (!token) return;
+
+  const mainContent = document.querySelector(".main_content");
+  if (!mainContent) return;
+
+  try {
+    const res = await fetch("/api/admin/claps", {
+      headers: { "X-Admin-Token": token }
+    });
+    if (!res.ok) return;
+
+    const claps = await res.json();
+    if (claps.length === 0) return;
+
+    const clapSection = document.createElement("div");
+    clapSection.style.marginTop = "30px";
+    clapSection.style.border = "1px solid #00FF00";
+    clapSection.style.padding = "10px";
+    clapSection.innerHTML = `<h3 style="margin-top:0; color:#00FF00; border-bottom:1px solid #00FF00;">◆ 拍手メッセージ (最新100件)</h3>`;
+    
+    const list = document.createElement("div");
+    list.style.maxHeight = "300px";
+    list.style.overflowY = "auto";
+    list.style.fontSize = "12px";
+
+    claps.forEach(c => {
+      if (!c.message) return;
+      const item = document.createElement("div");
+      item.style.marginBottom = "8px";
+      item.style.borderBottom = "1px solid #222";
+      const dateStr = new Date(c.created_at.replace(" ", "T") + "Z").toLocaleString("ja-JP");
+      item.innerHTML = `
+        <span style="color:#888;">[${dateStr}]</span> 
+        <span style="color:#00FF00;">${c.message}</span>
+      `;
+      list.appendChild(item);
+    });
+
+    clapSection.appendChild(list);
+    mainContent.appendChild(clapSection);
+  } catch (err) {
+    console.error("Clap fetch error:", err);
+  }
+}
+
 // ページ読み込み完了時に実行
 document.addEventListener('DOMContentLoaded', async () => {
   await fetchCsrfToken(); // 最初にトークンを取得
@@ -321,6 +419,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   fetchNews();
   initNewsPosting();
   initNewsEvents(); // イベントリスナーの設定
+  initClapEvents();
+  fetchAdminClaps();
 });
 
 // 万が一 DOMContentLoaded が発火済みのケースに対応

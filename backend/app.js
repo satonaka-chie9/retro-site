@@ -167,6 +167,25 @@ app.delete("/api/news/:id", csrfProtection, adminOnly, (req, res) => {
   });
 });
 
+// ===== Web 拍手 =====
+app.post("/api/claps", (req, res) => {
+  const { message, device_id } = req.body;
+  const ip = (req.headers["x-forwarded-for"]?.split(",")[0] || req.ip).replace("::ffff:", "");
+  const cleanMsg = message ? escapeHTML(message.substring(0, 200)) : null;
+
+  db.run("INSERT INTO claps (message, ip, device_id) VALUES (?, ?, ?)", [cleanMsg, ip, device_id], (err) => {
+    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    res.json({ success: true });
+  });
+});
+
+app.get("/api/admin/claps", adminOnly, (req, res) => {
+  db.all("SELECT * FROM claps ORDER BY created_at DESC LIMIT 100", [], (err, rows) => {
+    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    res.json(rows);
+  });
+});
+
 // 静的ファイルの提供
 const path = require("path");
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, "uploads");
