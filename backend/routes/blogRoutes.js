@@ -4,6 +4,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const db = require("../db/database");
+const logger = require("../services/logger");
 
 // 画像保存先の設定
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, "../uploads");
@@ -101,6 +102,7 @@ router.delete("/:id", adminOnly, (req, res) => {
       console.error(err);
       return res.status(500).json({ error: "サーバーエラー" });
     }
+    logger.logAction("DELETE", "blog", id);
     res.json({ success: true });
   });
 });
