@@ -1,48 +1,57 @@
 const sqlite3 = require("sqlite3").verbose();
 const { Pool } = require("pg");
+const dns = require("dns");
 const path = require("path");
 const fs = require("fs");
 
 let db;
 const isPostgres = !!process.env.DATABASE_URL;
 
+console.log(`[DB] Mode: ${isPostgres ? "PostgreSQL (Supabase)" : "SQLite"}`);
+
 if (isPostgres) {
+  console.log(`[DB] Connection string length: ${process.env.DATABASE_URL.length}`);
   const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: {
       rejectUnauthorized: false
+    },
+    // Force IPv4 for DNS lookup to avoid ENETUNREACH with IPv6
+    lookup: (hostname, options, callback) => {
+      dns.lookup(hostname, { family: 4 }, callback);
     }
+  });
+
+  pool.on('error', (err) => {
+    console.error('[DB] Unexpected error on idle client', err);
   });
 
   db = {
     all: (sql, params, callback) => {
-      // Postgres parameters use $1, $2 instead of ?
       const pgSql = sql.replace(/\?/g, (_, i, s) => `$${s.substring(0, i).split('?').length}`);
       pool.query(pgSql, params, (err, result) => {
+        if (err) console.error(`[DB] Query Error (all): ${sql}`, err);
         if (callback) callback(err, result ? result.rows : null);
       });
     },
     get: (sql, params, callback) => {
       const pgSql = sql.replace(/\?/g, (_, i, s) => `$${s.substring(0, i).split('?').length}`);
       pool.query(pgSql, params, (err, result) => {
+        if (err) console.error(`[DB] Query Error (get): ${sql}`, err);
         if (callback) callback(err, result && result.rows.length > 0 ? result.rows[0] : null);
       });
     },
     run: (sql, params, callback) => {
       const pgSql = sql.replace(/\?/g, (_, i, s) => `$${s.substring(0, i).split('?').length}`);
-      // Handle "INSERT OR IGNORE" (SQLite) -> "INSERT ... ON CONFLICT DO NOTHING" (Postgres)
       let finalSql = pgSql.replace(/INSERT OR IGNORE INTO/gi, "INSERT INTO");
       if (pgSql.match(/INSERT OR IGNORE INTO/gi)) {
-         // This is a simplified transformation; specific cases might need more care.
-         // For 'counter' table specifically:
          if (finalSql.includes("counter")) {
            finalSql += " ON CONFLICT (id) DO NOTHING";
          }
       }
       
       pool.query(finalSql, params, function(err, result) {
-        // Mocking SQLite's this.lastID if possible, but pg doesn't provide it easily without RETURNING.
-        // For simple cases, we just return the result.
+        if (err) console.error(`[DB] Query Error (run): ${finalSql}`, err);
         if (callback) callback.call({ lastID: result ? result.oid : null }, err);
       });
     },
@@ -51,6 +60,7 @@ if (isPostgres) {
   };
 } else {
   const dbPath = process.env.DATABASE_PATH || path.join(__dirname, "database.db");
+  console.log(`[DB] SQLite Path: ${dbPath}`);
   const dbDir = path.dirname(dbPath);
   if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
