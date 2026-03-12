@@ -111,23 +111,27 @@ function updateAdminUI() {
   const loginBtn = document.getElementById("admin-login-btn");
   const logoutBtn = document.getElementById("admin-logout-btn");
   const newsPostArea = document.getElementById("news-post-area");
+  const statusPostArea = document.getElementById("status-post-area");
 
   if (token) {
     if (loginArea) loginArea.style.display = "none";
-    if (logoutArea) logoutArea.style.display = "block";
+    if (logoutArea) logoutArea.classList.remove("hidden");
     if (newsPostArea) newsPostArea.style.display = "block";
+    if (statusPostArea) statusPostArea.style.display = "block";
     if (logoutBtn) {
       logoutBtn.onclick = adminLogout;
     }
   } else {
     if (loginArea) loginArea.style.display = "block";
-    if (logoutArea) logoutArea.style.display = "none";
+    if (logoutArea) logoutArea.classList.add("hidden");
     if (newsPostArea) newsPostArea.style.display = "none";
+    if (statusPostArea) statusPostArea.style.display = "none";
     if (loginBtn) {
       loginBtn.onclick = adminLogin;
     }
   }
 }
+
 
 async function fetchNews() {
   const listEl = document.getElementById("news-list");
@@ -312,6 +316,104 @@ window.deleteNews = async (id) => {
   }
 };
 
+async function fetchStatuses() {
+  const listEl = document.getElementById("status-list");
+  if (!listEl) return;
+
+  try {
+    const res = await fetch("/api/statuses");
+    const items = await res.json();
+    
+    if (items.length === 0) {
+      listEl.innerHTML = '<p class="text-gray">近況はありません。</p>';
+      return;
+    }
+
+    const isAdmin = getAdminToken().length > 0;
+    listEl.innerHTML = "";
+    items.forEach(item => {
+      const dateStr = formatDate(item.created_at);
+      const div = document.createElement("div");
+      div.className = "news-item";
+      div.style.marginBottom = "10px";
+      div.style.borderBottom = "1px dotted #333";
+      div.style.paddingBottom = "5px";
+
+      div.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+          <span style="font-size: 0.8em; color: #888;">[${dateStr}]</span>
+          ${isAdmin ? `<button onclick="deleteStatus(${item.id})" style="font-size: 10px;">削除</button>` : ''}
+        </div>
+        <p style="margin: 5px 0; white-space: pre-wrap; font-size: 0.9em;"></p>
+      `;
+      div.querySelector("p").textContent = item.content;
+      listEl.appendChild(div);
+    });
+  } catch (err) {
+    listEl.innerHTML = '<p style="color: #F00;">近況の読み込みに失敗しました。</p>';
+  }
+}
+
+function initStatusPosting() {
+  const postBtn = document.getElementById("status-post-btn");
+  const inputEl = document.getElementById("status-new-input");
+  if (!postBtn) return;
+
+  postBtn.onclick = async () => {
+    const content = inputEl.value;
+    if (!content) return;
+    if (!csrfToken) await fetchCsrfToken();
+
+    try {
+      const res = await fetch("/api/statuses", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+          "X-Admin-Token": getAdminToken()
+        },
+        body: JSON.stringify({ content })
+      });
+
+      if (res.ok) {
+        inputEl.value = "";
+        fetchStatuses();
+      } else {
+        const data = await res.json();
+        alert(data.error || "投稿に失敗しました。");
+        await fetchCsrfToken();
+      }
+    } catch (err) {
+      alert("通信エラーが発生しました。");
+    }
+  };
+}
+
+window.deleteStatus = async (id) => {
+  if (!confirm("この近況を削除しますか？")) return;
+  if (!csrfToken) await fetchCsrfToken();
+
+  try {
+    const res = await fetch(`/api/statuses/${id}`, {
+      method: "DELETE",
+      headers: { 
+        "X-CSRF-Token": csrfToken,
+        "X-Admin-Token": getAdminToken()
+      }
+    });
+
+    if (res.ok) {
+      fetchStatuses();
+    } else {
+      const data = await res.json();
+      alert(data.error || "削除に失敗しました。");
+      await fetchCsrfToken();
+    }
+  } catch (err) {
+    alert("エラーが発生しました。");
+  }
+};
+
 async function updateCounter() {
   const device_id = getDeviceId();
   try {
@@ -445,6 +547,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   fetchNews();
   initNewsPosting();
   initNewsEvents(); // イベントリスナーの設定
+  fetchStatuses();
+  initStatusPosting();
   initClapEvents();
   fetchPublicClaps();
   updateClapCountDisplay();

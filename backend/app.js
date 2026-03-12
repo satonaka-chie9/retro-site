@@ -216,6 +216,30 @@ app.get("/api/admin/claps", adminOnly, (req, res) => {
   });
 });
 
+// ===== 最近の近況 =====
+app.get("/api/statuses", (req, res) => {
+  db.all("SELECT * FROM statuses ORDER BY created_at DESC LIMIT 10", [], (err, rows) => {
+    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    res.json(rows || []);
+  });
+});
+
+app.post("/api/statuses", csrfProtection, adminOnly, (req, res) => {
+  const content = escapeHTML(req.body.content);
+  db.run("INSERT INTO statuses (content) VALUES (?)", [content], function(err) {
+    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    res.json({ success: true, id: this.lastID });
+  });
+});
+
+app.delete("/api/statuses/:id", csrfProtection, adminOnly, (req, res) => {
+  const { id } = req.params;
+  db.run("DELETE FROM statuses WHERE id = ?", [id], function(err) {
+    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    res.json({ success: true });
+  });
+});
+
 // 静的ファイルの提供
 const path = require("path");
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, "uploads");
