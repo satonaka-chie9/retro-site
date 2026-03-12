@@ -179,6 +179,13 @@ app.post("/api/claps", (req, res) => {
   });
 });
 
+app.get("/api/admin/claps/stats", adminOnly, (req, res) => {
+  db.get("SELECT COUNT(*) as total FROM claps", [], (err, row) => {
+    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    res.json(row);
+  });
+});
+
 app.get("/api/admin/claps", adminOnly, (req, res) => {
   db.all("SELECT * FROM claps ORDER BY created_at DESC LIMIT 100", [], (err, rows) => {
     if (err) return res.status(500).json({ error: "サーバーエラー" });
