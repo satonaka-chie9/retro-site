@@ -1,6 +1,12 @@
 const sqlite3 = require("sqlite3").verbose();
 const { Pool } = require("pg");
 const dns = require("dns");
+
+// Force IPv4 as the default for all DNS lookups
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
+
 const path = require("path");
 const fs = require("fs");
 
