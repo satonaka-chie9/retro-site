@@ -111,7 +111,7 @@ async function updateClapCountDisplay() {
     const res = await fetch("/api/claps/count");
     const data = await res.json();
     const countEl = document.getElementById("clap-count");
-    if (countEl) countEl.innerText = `${data.total} claps`;
+    if (countEl) countEl.innerText = `${data.total} 拍手`;
   } catch (err) {
     console.error("Clap count error:", err);
   }
@@ -119,7 +119,7 @@ async function updateClapCountDisplay() {
 
 socket.on("clap_update", (data) => {
   const countEl = document.getElementById("clap-count");
-  if (countEl) countEl.innerText = `${data.total} claps`;
+  if (countEl) countEl.innerText = `${data.total} 拍手`;
 });
 
 function initClapEvents() {
