@@ -113,7 +113,13 @@ canvas {
       <span>00000</span>
     </div>
     <p class="menu_title">キリ番はBBSにて報告ください</p>
+
+    <!-- Web拍手ボタン -->
+    <div style="margin-top: 30px; border-top: 1px dashed #00FF00;">
+      <a href="javascript:void(0)" class="clap-btn" id="open-clap-modal">Web 拍手</a>
+    </div>
   </div>
+
 
   <!-- メイン -->
   <div class="main_content">
@@ -161,6 +167,18 @@ canvas {
 
     </div>
 
+  </div>
+</div>
+
+<!-- 拍手用モーダル -->
+<div id="clap-overlay"></div>
+<div id="clap-modal">
+  <h3 style="margin-top:0; color:#00FF00;">👏 Web 拍手</h3>
+  <p style="font-size:12px;">管理人に一言メッセージをどうぞ！<br>(拍手だけでもOKです)</p>
+  <textarea id="clap-message" style="width:100%; height:80px; background:#111; color:#00FF00; border:1px solid #00FF00; margin-bottom:10px;"></textarea>
+  <div style="display:flex; justify-content:space-between;">
+    <button id="send-clap" style="flex:1; margin-right:5px;">送信</button>
+    <button id="close-clap-modal" style="flex:1;">閉じる</button>
   </div>
 </div>
 
