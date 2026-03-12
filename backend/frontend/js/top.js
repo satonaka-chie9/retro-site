@@ -381,18 +381,13 @@ function initClapEvents() {
   });
 }
 
-// 管理者用拍手メッセージ表示
-async function fetchAdminClaps() {
-  const token = getAdminToken();
-  if (!token) return;
-
+// 拍手メッセージ表示 (全ユーザー公開)
+async function fetchPublicClaps() {
   const mainContent = document.querySelector(".main_content");
   if (!mainContent) return;
 
   try {
-    const res = await fetch("/api/admin/claps", {
-      headers: { "X-Admin-Token": token }
-    });
+    const res = await fetch("/api/claps");
     if (!res.ok) return;
 
     const claps = await res.json();
@@ -400,13 +395,12 @@ async function fetchAdminClaps() {
 
     const clapSection = document.createElement("div");
     clapSection.className = "admin-clap-section";
-    clapSection.innerHTML = `<h3>◆ 拍手メッセージ (最新100件)</h3>`;
+    clapSection.innerHTML = `<h3>◆ 届いた拍手メッセージ</h3>`;
     
     const list = document.createElement("div");
     list.className = "admin-clap-list";
 
     claps.forEach(c => {
-      if (!c.message) return;
       const item = document.createElement("div");
       item.className = "admin-clap-item";
       const dateStr = formatDate(c.created_at);
@@ -434,7 +428,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initNewsPosting();
   initNewsEvents(); // イベントリスナーの設定
   initClapEvents();
-  fetchAdminClaps();
+  fetchPublicClaps();
 });
 
 // 万が一 DOMContentLoaded が発火済みのケースに対応

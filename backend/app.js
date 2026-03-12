@@ -186,6 +186,14 @@ app.get("/api/admin/claps/stats", adminOnly, (req, res) => {
   });
 });
 
+app.get("/api/claps", (req, res) => {
+  // 公開用: IPやデバイスIDを除いたメッセージのみ
+  db.all("SELECT message, created_at FROM claps WHERE message IS NOT NULL AND message != '' ORDER BY created_at DESC LIMIT 50", [], (err, rows) => {
+    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    res.json(rows);
+  });
+});
+
 app.get("/api/admin/claps", adminOnly, (req, res) => {
   db.all("SELECT * FROM claps ORDER BY created_at DESC LIMIT 100", [], (err, rows) => {
     if (err) return res.status(500).json({ error: "サーバーエラー" });
