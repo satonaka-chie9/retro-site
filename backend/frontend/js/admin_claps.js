@@ -3,6 +3,26 @@ function getAdminToken() {
   return (token && token !== "undefined") ? token : "";
 }
 
+function formatDate(dateInput) {
+  if (!dateInput) return "";
+  let date;
+  if (dateInput instanceof Date) date = dateInput;
+  else if (typeof dateInput === "string") {
+    if (dateInput.includes("T") || dateInput.includes("Z")) date = new Date(dateInput);
+    else date = new Date(dateInput.replace(" ", "T") + "Z");
+  } else date = new Date(dateInput);
+  if (isNaN(date.getTime())) return "日付不明";
+  const formatter = new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric", month: "numeric", day: "numeric",
+    hour: "numeric", minute: "2-digit", second: "2-digit", hour12: false
+  });
+  const parts = formatter.formatToParts(date);
+  const p = {};
+  parts.forEach(part => p[part.type] = part.value);
+  return `${p.year}/${p.month}/${p.day} ${p.hour}:${p.minute}:${p.second}`;
+}
+
 async function fetchStats() {
   const token = getAdminToken();
   if (!token) {
@@ -45,7 +65,7 @@ async function fetchClaps() {
       // メッセージがない拍手は無視するか、表示するかお好みで。ここではメッセージありのみを表示。
       if (!c.message) return;
 
-      const dateStr = new Date(c.created_at.replace(" ", "T") + "Z").toLocaleString("ja-JP");
+      const dateStr = formatDate(c.created_at);
       const div = document.createElement("div");
       div.className = "clap-msg-item";
       div.innerHTML = `

@@ -113,12 +113,25 @@ function updateAdminUI() {
   }
 }
 
-function formatDate(dateStr) {
-  if (!dateStr) return "";
+function formatDate(dateInput) {
+  if (!dateInput) return "";
   
-  const date = (dateStr.includes("T") || dateStr.includes("Z")) 
-    ? new Date(dateStr) 
-    : new Date(dateStr.replace(" ", "T") + "Z");
+  let date;
+  if (dateInput instanceof Date) {
+    date = dateInput;
+  } else if (typeof dateInput === "string") {
+    if (dateInput.includes("T") || dateInput.includes("Z")) {
+      date = new Date(dateInput);
+    } else {
+      // SQLite format "YYYY-MM-DD HH:MM:SS" -> "YYYY-MM-DDTHH:MM:SSZ" (UTC)
+      date = new Date(dateInput.replace(" ", "T") + "Z");
+    }
+  } else {
+    date = new Date(dateInput);
+  }
+
+  // 無効な日付のチェック
+  if (isNaN(date.getTime())) return "日付不明";
 
   const formatter = new Intl.DateTimeFormat("ja-JP", {
     timeZone: "Asia/Tokyo",
