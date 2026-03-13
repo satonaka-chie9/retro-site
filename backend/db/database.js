@@ -74,9 +74,31 @@ if (isPostgres) {
   const sqliteDb = new sqlite3.Database(dbPath);
   
   db = {
-    all: (sql, params, callback) => sqliteDb.all(sql, params, callback),
-    get: (sql, params, callback) => sqliteDb.get(sql, params, callback),
-    run: (sql, params, callback) => sqliteDb.run(sql, params, callback),
+    all: (sql, params, callback) => {
+      if (typeof params === "function") {
+        callback = params;
+        params = [];
+      }
+      return sqliteDb.all(sql, params || [], callback);
+    },
+    get: (sql, params, callback) => {
+      if (typeof params === "function") {
+        callback = params;
+        params = [];
+      }
+      return sqliteDb.get(sql, params || [], callback);
+    },
+    run: (sql, params, callback) => {
+      if (typeof params === "function") {
+        callback = params;
+        params = [];
+      }
+      return sqliteDb.run(sql, params || [], callback || ((err) => {
+        if (err && !err.message.includes("duplicate column name")) {
+          console.error(`[DB] SQLite Run Error: ${err.message}`, sql);
+        }
+      }));
+    },
     isPostgres: false,
     sqliteDb: sqliteDb
   };
@@ -191,11 +213,14 @@ async function initDb() {
           name TEXT,
           content TEXT,
           ip TEXT,
+          device_id TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME
         )
       `);
-      db.run("ALTER TABLE posts ADD COLUMN device_id TEXT", (err) => {});
+      db.run("ALTER TABLE posts ADD COLUMN device_id TEXT", (err) => {
+        // Ignore error if column already exists
+      });
       db.run(`
         CREATE TABLE IF NOT EXISTS counter (
           id INTEGER PRIMARY KEY,
@@ -207,10 +232,13 @@ async function initDb() {
         CREATE TABLE IF NOT EXISTS access_log (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           ip TEXT,
-          accessed_date TEXT
+          accessed_date TEXT,
+          device_id TEXT
         )
       `);
-      db.run("ALTER TABLE access_log ADD COLUMN device_id TEXT", (err) => {});
+      db.run("ALTER TABLE access_log ADD COLUMN device_id TEXT", (err) => {
+        // Ignore error if column already exists
+      });
       db.run(`
         CREATE TABLE IF NOT EXISTS users (
           id INTEGER PRIMARY KEY AUTOINCREMENT,

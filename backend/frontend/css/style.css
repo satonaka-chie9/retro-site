@@ -171,6 +171,12 @@ button:active {
   text-align: center;
 }
 
+.center_text table {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: left; /* Keep cell content left-aligned unless otherwise specified */
+}
+
 /* Web拍手モーダル */
 #clap-modal {
   display: none;
