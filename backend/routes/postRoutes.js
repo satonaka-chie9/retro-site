@@ -31,6 +31,26 @@ function getClientIp(req) {
     .replace("::ffff:", "");
 }
 
+// IP制限チェックミドルウェア
+const checkIPBan = (req, res, next) => {
+  const ip = getClientIp(req);
+  const adminTokenHeader = req.headers["x-admin-token"];
+  const adminTokenFromBody = req.body.admin_token;
+  const adminSecret = process.env.ADMIN_TOKEN || "default-secret-token";
+  const isAdmin = (adminTokenHeader === adminSecret) || (adminTokenFromBody === adminSecret);
+
+  // 管理者は制限を受けない
+  if (isAdmin) return next();
+
+  db.get("SELECT 1 FROM banned_ips WHERE ip = ?", [ip], (err, row) => {
+    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    if (row) {
+      return res.status(403).json({ error: "このIPアドレスからの投稿は制限されています。" });
+    }
+    next();
+  });
+};
+
 // 投稿一覧
 router.get("/", (req, res) => {
   db.all("SELECT * FROM posts", [], (err, rows) => {
@@ -43,7 +63,7 @@ router.get("/", (req, res) => {
 });
 
 // 投稿追加
-router.post("/", postLimiter, postValidation, validate, async (req, res) => {
+router.post("/", postLimiter, checkIPBan, postValidation, validate, async (req, res) => {
   let { name, content, device_id } = req.body;
   const ip = getClientIp(req);
   const adminTokenHeader = req.headers["x-admin-token"];
@@ -112,7 +132,7 @@ router.post("/", postLimiter, postValidation, validate, async (req, res) => {
 });
 
 // 投稿更新
-router.put("/:id", postValidation, validate, (req, res) => {
+router.put("/:id", checkIPBan, postValidation, validate, (req, res) => {
   const { id } = req.params;
   const { name, content, device_id } = req.body;
   const adminTokenFromHeader = req.headers["x-admin-token"];
@@ -149,7 +169,7 @@ router.put("/:id", postValidation, validate, (req, res) => {
 });
 
 // 投稿削除
-router.delete("/:id", (req, res) => {
+router.delete("/:id", checkIPBan, (req, res) => {
   const { id } = req.params;
   const { device_id } = req.body;
   const adminTokenFromHeader = req.headers["x-admin-token"];

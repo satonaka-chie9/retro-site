@@ -84,7 +84,15 @@ async function fetchClaps() {
   }
 }
 
+function adminLogout() {
+  localStorage.removeItem("admin_token");
+  alert("ログアウトしました。");
+  location.href = "index.html";
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   fetchStats();
   fetchClaps();
+  const logoutBtn = document.getElementById("admin-logout-btn");
+  if (logoutBtn) logoutBtn.onclick = adminLogout;
 });
