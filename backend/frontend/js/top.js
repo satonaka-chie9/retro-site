@@ -503,6 +503,10 @@ function initClapEvents() {
 
 // 拍手メッセージ表示 (全ユーザー公開)
 async function fetchPublicClaps() {
+  // トップページ以外では表示しない
+  const isTopPage = location.pathname === "/" || location.pathname.endsWith("/index.html");
+  if (!isTopPage) return;
+
   const mainContent = document.querySelector(".main_content");
   if (!mainContent) return;
 
@@ -524,13 +528,18 @@ async function fetchPublicClaps() {
       const item = document.createElement("div");
       item.className = "admin-clap-item";
       const dateStr = formatDate(c.created_at);
+      const msg = c.message || "";
+      if (!msg) return; // メッセージがない場合はスキップ
+
       item.innerHTML = `
         <span class="date">[${dateStr}]</span> 
         <span class="msg"></span>
       `;
-      item.querySelector(".msg").textContent = c.message;
+      item.querySelector(".msg").textContent = msg;
       list.appendChild(item);
     });
+
+    if (list.children.length === 0) return;
 
     clapSection.appendChild(list);
     mainContent.appendChild(clapSection);
