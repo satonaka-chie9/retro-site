@@ -85,8 +85,7 @@ async function adminLogin() {
 function adminLogout() {
   localStorage.removeItem("admin_token");
   alert("ログアウトしました。");
-  updateAdminUI();
-  loadPosts();
+  location.reload();
 }
 
 function updateAdminUI() {
@@ -98,13 +97,13 @@ function updateAdminUI() {
 
   if (token) {
     if (loginArea) loginArea.style.display = "none";
-    if (logoutArea) logoutArea.style.display = "block";
+    if (logoutArea) logoutArea.classList.remove("hidden");
     if (logoutBtn) {
       logoutBtn.onclick = adminLogout;
     }
   } else {
     if (loginArea) loginArea.style.display = "block";
-    if (logoutArea) logoutArea.style.display = "none";
+    if (logoutArea) logoutArea.classList.add("hidden");
     if (loginBtn) {
       loginBtn.onclick = adminLogin;
     }
@@ -425,5 +424,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
   updateAdminUI();
 }
+
+// グローバルに公開
+window.adminLogin = adminLogin;
+window.adminLogout = adminLogout;
 
 setInterval(loadPosts, 5000);

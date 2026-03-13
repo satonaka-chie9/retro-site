@@ -79,14 +79,14 @@ function updateAdminUI() {
 
   if (token) {
     if (loginArea) loginArea.style.display = "none";
-    if (logoutArea) logoutArea.style.display = "block";
+    if (logoutArea) logoutArea.classList.remove("hidden");
     if (blogFormArea) blogFormArea.style.display = "block";
     if (logoutBtn) {
       logoutBtn.onclick = adminLogout;
     }
   } else {
     if (loginArea) loginArea.style.display = "block";
-    if (logoutArea) logoutArea.style.display = "none";
+    if (logoutArea) logoutArea.classList.add("hidden");
     if (blogFormArea) blogFormArea.style.display = "none";
     if (loginBtn) {
       loginBtn.onclick = adminLogin;
@@ -358,3 +358,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   initClapEvents();
   updateClapCountDisplay();
 });
+
+// 万が一 DOMContentLoaded が発火済みのケースに対応
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  updateAdminUI();
+}
+
+window.adminLogin = adminLogin;
+window.adminLogout = adminLogout;
