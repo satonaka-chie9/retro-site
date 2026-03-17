@@ -188,6 +188,14 @@ async function initDb() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    queries.push(`
+      CREATE TABLE IF NOT EXISTS banned_ips (
+        id SERIAL PRIMARY KEY,
+        ip TEXT UNIQUE,
+        reason TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
     
     const adminPassword = process.env.ADMIN_PASSWORD || 'default_secure_password';
     queries.push({
@@ -286,6 +294,14 @@ async function initDb() {
         CREATE TABLE IF NOT EXISTS statuses (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           content TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      db.run(`
+        CREATE TABLE IF NOT EXISTS banned_ips (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          ip TEXT UNIQUE,
+          reason TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);

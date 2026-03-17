@@ -42,16 +42,17 @@ app.use(cors({
   credentials: true
 }));
 
+app.set('trust proxy', 1);
+
 // レート制限
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
+  windowMs: 1 * 60 * 1000,
+  max: 40,
+  message: { error: "アクセスが多すぎます。少し時間を置いてから再度お試しください。" },
   standardHeaders: true,
   legacyHeaders: false,
 });
-app.use(globalLimiter);
-
-app.set('trust proxy', 1);
+app.use("/api/", globalLimiter);
 
 const io = new Server(server, {
   cors: {
@@ -123,6 +124,45 @@ const adminOnly = (req, res, next) => {
   }
 };
 
+const checkIPBan = (req, res, next) => {
+  const ip = (req.headers["x-forwarded-for"]?.split(",")[0] || req.ip).replace("::ffff:", "");
+  db.get("SELECT 1 FROM banned_ips WHERE ip = ?", [ip], (err, row) => {
+    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    if (row) {
+      return res.status(403).json({ error: "このIPアドレスからの投稿は制限されています。" });
+    }
+    next();
+  });
+};
+
+// --- IP制限管理 API ---
+app.get("/api/admin/restrictions", adminOnly, (req, res) => {
+  db.all("SELECT * FROM banned_ips ORDER BY created_at DESC", [], (err, rows) => {
+    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    res.json(rows || []);
+  });
+});
+
+app.post("/api/admin/restrictions", csrfProtection, adminOnly, (req, res) => {
+  const { ip, reason } = req.body;
+  if (!ip) return res.status(400).json({ error: "IPアドレスが必要です" });
+  db.run("INSERT INTO banned_ips (ip, reason) VALUES (?, ?)", [ip, reason], function(err) {
+    if (err) {
+      if (err.message.includes("UNIQUE")) return res.status(400).json({ error: "このIPは既に制限されています" });
+      return res.status(500).json({ error: "サーバーエラー" });
+    }
+    res.json({ success: true, id: this.lastID });
+  });
+});
+
+app.delete("/api/admin/restrictions/:id", csrfProtection, adminOnly, (req, res) => {
+  const { id } = req.params;
+  db.run("DELETE FROM banned_ips WHERE id = ?", [id], function(err) {
+    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    res.json({ success: true });
+  });
+});
+
 const escapeHTML = (str) => {
   if (!str) return str;
   return str
@@ -168,7 +208,7 @@ app.delete("/api/news/:id", csrfProtection, adminOnly, (req, res) => {
 });
 
 // ===== Web 拍手 =====
-app.post("/api/claps", (req, res) => {
+app.post("/api/claps", checkIPBan, (req, res) => {
   const { message, device_id } = req.body;
   const ip = (req.headers["x-forwarded-for"]?.split(",")[0] || req.ip).replace("::ffff:", "");
   const cleanMsg = message ? escapeHTML(message.substring(0, 200)) : null;
@@ -271,32 +311,42 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("redo");
   });
   socket.on("chat", async (data) => {
-    let { name, message, device_id } = data;
-    // チャットのエスケープも重要
-    name = escapeHTML(name);
-    message = escapeHTML(message);
-
-    const now = Date.now();
-    const limitWindow = 30 * 1000;
-    const maxMessages = 10;
-    if (!chatRateLimits.has(socket.id)) chatRateLimits.set(socket.id, []);
-    const timestamps = chatRateLimits.get(socket.id);
-    const validTimestamps = timestamps.filter(ts => now - ts < limitWindow);
-    if (validTimestamps.length >= maxMessages) {
-      socket.emit("chat_error", { message: "チャットの送信が速すぎます。" });
-      return;
-    }
+    const ip = (socket.handshake.headers["x-forwarded-for"]?.split(",")[0] || socket.handshake.address).replace("::ffff:", "");
     
-    let finalName = name || "名無しさん";
-    validTimestamps.push(now);
-    chatRateLimits.set(socket.id, validTimestamps);
+    // IP制限チェック
+    db.get("SELECT 1 FROM banned_ips WHERE ip = ?", [ip], async (err, row) => {
+      if (row) {
+        socket.emit("chat_error", { message: "投稿が制限されています。" });
+        return;
+      }
 
-    // データベースに保存
-    db.run("INSERT INTO chat_messages (name, message, device_id) VALUES (?, ?, ?)", [finalName, message, device_id], (err) => {
-      if (err) console.error("Chat save error:", err);
+      let { name, message, device_id } = data;
+      // チャットのエスケープも重要
+      name = escapeHTML(name);
+      message = escapeHTML(message);
+
+      const now = Date.now();
+      const limitWindow = 30 * 1000;
+      const maxMessages = 10;
+      if (!chatRateLimits.has(socket.id)) chatRateLimits.set(socket.id, []);
+      const timestamps = chatRateLimits.get(socket.id);
+      const validTimestamps = timestamps.filter(ts => now - ts < limitWindow);
+      if (validTimestamps.length >= maxMessages) {
+        socket.emit("chat_error", { message: "チャットの送信が速すぎます。" });
+        return;
+      }
+      
+      let finalName = name || "名無しさん";
+      validTimestamps.push(now);
+      chatRateLimits.set(socket.id, validTimestamps);
+
+      // データベースに保存
+      db.run("INSERT INTO chat_messages (name, message, device_id) VALUES (?, ?, ?)", [finalName, message, device_id], (err) => {
+        if (err) console.error("Chat save error:", err);
+      });
+
+      io.emit("chat", { name: finalName, message, used_name: finalName });
     });
-
-    io.emit("chat", { name: finalName, message, used_name: finalName });
   });
   socket.on("disconnect", () => {
     chatRateLimits.delete(socket.id);

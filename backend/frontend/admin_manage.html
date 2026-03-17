@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Retro Site - 管理パネル</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .manage-section {
+      border: 1px solid #00FF00;
+      padding: 15px;
+      margin-bottom: 20px;
+      background: #000;
+    }
+    .manage-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    .manage-table th, .manage-table td {
+      border: 1px solid #00FF00;
+      padding: 8px;
+      text-align: left;
+    }
+    .ban-form {
+      margin-bottom: 15px;
+      padding: 10px;
+      border: 1px dashed #00FF00;
+    }
+  </style>
+</head>
+<body>
+
+<h1 class="title">管理者用管理パネル</h1>
+<hr>
+
+<div class="layout">
+  <!-- サイドバー -->
+  <div class="side_menu">
+    <a href="index.html">TOP</a>
+    <a href="bbs.html">BBS</a>
+    <a href="blog.html">日記</a>
+    <a href="etchat.html">絵チャ</a>
+    <a href="profile.html">PROFILE</a>
+    <a href="Link_collection.html">リンク集</a>
+    
+    <p class="menu_title">管理者用</p>
+    <div id="admin-logout-area">
+      <p class="admin-login-status">管理者ログイン中</p>
+      <a href="admin_claps.html" class="admin-manage-link">拍手メッセージ管理</a>
+      <a href="admin_manage.html" class="admin-manage-link" style="font-weight: bold; border-left: 3px solid #00FF00; padding-left: 5px;">IP制限管理</a>
+      <button id="admin-logout-btn">LOGOUT</button>
+    </div>
+  </div>
+
+  <!-- メインコンテンツ -->
+  <div class="main_content">
+    <h2>◆ IP制限（アクセス禁止）管理</h2>
+    
+    <div class="manage-section">
+      <div class="ban-form">
+        <h3>新規制限追加</h3>
+        IPアドレス: <input type="text" id="ban-ip" placeholder="127.0.0.1" class="admin-input" style="width: 150px;">
+        理由: <input type="text" id="ban-reason" placeholder="荒らし等" class="admin-input" style="width: 200px;">
+        <button id="add-ban-btn">制限を追加</button>
+      </div>
+
+      <h3>制限中IP一覧</h3>
+      <table class="manage-table">
+        <thead>
+          <tr>
+            <th>IPアドレス</th>
+            <th>理由</th>
+            <th>登録日</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="ban-list">
+          <tr><td colspan="4">読み込み中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="js/admin_manage.js"></script>
+</body>
+</html>

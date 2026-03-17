@@ -176,6 +176,7 @@ async function loadPosts() {
     div.innerHTML = `
       <div class="post_header">
         No.<span class="post-id"></span> <span class="post-name"></span>
+        ${isAdmin ? `<span class="post-ip" style="color: #888; font-size: 0.8em; margin-left: 5px;">[IP: ${post.ip || "unknown"}]</span>` : ""}
         <span class="post-date"></span> <span class="post-edited"></span>
       </div>
       <pre class="post_body"></pre>
