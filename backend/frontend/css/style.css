@@ -73,6 +73,16 @@ hr {
   text-align: center;
 }
 
+.intro_container {
+  display: table;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.intro_container p {
+  text-align: left;
+}
+
 /* ===== BBS投稿 ===== */
 .post {
   border: 2px solid #00FF00;
