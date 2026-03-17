@@ -69,6 +69,10 @@ hr {
   min-width: 0;
 }
 
+.main_content p {
+  text-align: center;
+}
+
 /* ===== BBS投稿 ===== */
 .post {
   border: 2px solid #00FF00;
