@@ -52,7 +52,7 @@ const globalLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
-app.use(globalLimiter);
+app.use("/api/", globalLimiter);
 
 const io = new Server(server, {
   cors: {
