@@ -42,16 +42,17 @@ app.use(cors({
   credentials: true
 }));
 
+app.set('trust proxy', 1);
+
 // レート制限
 const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
+  windowMs: 1 * 60 * 1000,
+  max: 40,
+  message: { error: "アクセスが多すぎます。少し時間を置いてから再度お試しください。" },
   standardHeaders: true,
   legacyHeaders: false,
 });
 app.use(globalLimiter);
-
-app.set('trust proxy', 1);
 
 const io = new Server(server, {
   cors: {
