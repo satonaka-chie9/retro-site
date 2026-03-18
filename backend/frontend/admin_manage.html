@@ -35,22 +35,7 @@
 
 <div class="layout">
   <!-- サイドバー -->
-  <div class="side_menu">
-    <a href="index.html">TOP</a>
-    <a href="bbs.html">BBS</a>
-    <a href="blog.html">日記</a>
-    <a href="etchat.html">絵チャ</a>
-    <a href="profile.html">PROFILE</a>
-    <a href="Link_collection.html">リンク集</a>
-    
-    <p class="menu_title">管理者用</p>
-    <div id="admin-logout-area">
-      <p class="admin-login-status">管理者ログイン中</p>
-      <a href="admin_claps.html" class="admin-manage-link">拍手メッセージ管理</a>
-      <a href="admin_manage.html" class="admin-manage-link" style="font-weight: bold; border-left: 3px solid #00FF00; padding-left: 5px;">IP制限管理</a>
-      <button id="admin-logout-btn">LOGOUT</button>
-    </div>
-  </div>
+  <div id="sidebar-placeholder"></div>
 
   <!-- メインコンテンツ -->
   <div class="main_content">
@@ -83,6 +68,7 @@
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
+<script src="js/sidebar.js"></script>
 <script src="js/admin_manage.js"></script>
 </body>
 </html>

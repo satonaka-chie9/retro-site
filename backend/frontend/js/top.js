@@ -10,20 +10,6 @@ async function fetchCsrfToken() {
   }
 }
 
-function getDeviceId() {
-  let deviceId = localStorage.getItem("device_id");
-  if (!deviceId) {
-    deviceId = crypto.randomUUID();
-    localStorage.setItem("device_id", deviceId);
-  }
-  return deviceId;
-}
-
-function getAdminToken() {
-  const token = localStorage.getItem("admin_token");
-  return (token && token !== "undefined") ? token : "";
-}
-
 function formatDate(dateInput) {
   if (!dateInput) return "";
   let date;
@@ -44,95 +30,6 @@ function formatDate(dateInput) {
   return `${p.year}/${p.month}/${p.day} ${p.hour}:${p.minute}:${p.second}`;
 }
 
-// 管理者ログイン
-async function adminLogin() {
-  const userInput = document.getElementById("admin-user");
-  const passInput = document.getElementById("admin-pass");
-  const msgArea = document.getElementById("admin-msg");
-  
-  if (!userInput || !passInput) return;
-
-  const username = userInput.value;
-  const password = passInput.value;
-
-  if (msgArea) {
-    msgArea.style.color = "#00FF00";
-    msgArea.innerText = "認証中...";
-  }
-
-  // トークンがない場合は再取得を試みる
-  if (!csrfToken) await fetchCsrfToken();
-
-  try {
-    const res = await fetch("/api/admin/login", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "X-CSRF-Token": csrfToken
-      },
-      body: JSON.stringify({ username, password })
-    });
-
-    const data = await res.json();
-    if (res.ok && data.success) {
-      localStorage.setItem("admin_token", data.admin_token);
-      if (msgArea) {
-        msgArea.style.color = "#00FF00";
-        msgArea.innerText = "ログイン成功！";
-      }
-      setTimeout(() => location.reload(), 500);
-    } else {
-      if (msgArea) {
-        msgArea.style.color = "#FF0000";
-        msgArea.innerText = data.error || "ID/PASSが違います";
-      }
-      localStorage.removeItem("admin_token");
-      // エラー時はトークンを再取得（有効期限切れなどの対策）
-      await fetchCsrfToken();
-    }
-  } catch (err) {
-    if (msgArea) {
-      msgArea.style.color = "#FF0000";
-      msgArea.innerText = "通信エラー";
-    }
-  }
-}
-
-function adminLogout() {
-  localStorage.removeItem("admin_token");
-  alert("ログアウトしました。");
-  location.reload();
-}
-
-function updateAdminUI() {
-  const token = getAdminToken();
-  const loginArea = document.getElementById("admin-login-area");
-  const logoutArea = document.getElementById("admin-logout-area");
-  const loginBtn = document.getElementById("admin-login-btn");
-  const logoutBtn = document.getElementById("admin-logout-btn");
-  const newsPostArea = document.getElementById("news-post-area");
-  const statusPostArea = document.getElementById("status-post-area");
-
-  if (token) {
-    if (loginArea) loginArea.style.display = "none";
-    if (logoutArea) logoutArea.classList.remove("hidden");
-    if (newsPostArea) newsPostArea.style.display = "block";
-    if (statusPostArea) statusPostArea.style.display = "block";
-    if (logoutBtn) {
-      logoutBtn.onclick = adminLogout;
-    }
-  } else {
-    if (loginArea) loginArea.style.display = "block";
-    if (logoutArea) logoutArea.classList.add("hidden");
-    if (newsPostArea) newsPostArea.style.display = "none";
-    if (statusPostArea) statusPostArea.style.display = "none";
-    if (loginBtn) {
-      loginBtn.onclick = adminLogin;
-    }
-  }
-}
-
-
 async function fetchNews() {
   const listEl = document.getElementById("news-list");
   if (!listEl) return;
@@ -146,7 +43,7 @@ async function fetchNews() {
       return;
     }
 
-    const isAdmin = getAdminToken().length > 0;
+    const isAdmin = (localStorage.getItem("admin_token") || "").length > 0;
 
     listEl.innerHTML = "";
     newsItems.forEach(item => {
@@ -216,6 +113,8 @@ function initNewsPosting() {
   const inputEl = document.getElementById("news-new-input");
   if (!postBtn) return;
 
+  const getAdminToken = () => localStorage.getItem("admin_token") || "";
+
   postBtn.onclick = async () => {
     const content = inputEl.value;
     if (!content) return;
@@ -266,6 +165,7 @@ window.cancelEditNews = (id) => {
 window.saveEditNews = async (id) => {
   const inputEl = document.getElementById(`news-edit-input-${id}`);
   const content = inputEl.value;
+  const adminToken = localStorage.getItem("admin_token") || "";
   if (!csrfToken) await fetchCsrfToken();
 
   try {
@@ -274,7 +174,7 @@ window.saveEditNews = async (id) => {
       headers: { 
         "Content-Type": "application/json",
         "X-CSRF-Token": csrfToken,
-        "X-Admin-Token": getAdminToken()
+        "X-Admin-Token": adminToken
       },
       body: JSON.stringify({ content })
     });
@@ -293,6 +193,7 @@ window.saveEditNews = async (id) => {
 
 window.deleteNews = async (id) => {
   if (!confirm("この記事を削除しますか？")) return;
+  const adminToken = localStorage.getItem("admin_token") || "";
   if (!csrfToken) await fetchCsrfToken();
 
   try {
@@ -300,7 +201,7 @@ window.deleteNews = async (id) => {
       method: "DELETE",
       headers: { 
         "X-CSRF-Token": csrfToken,
-        "X-Admin-Token": getAdminToken()
+        "X-Admin-Token": adminToken
       }
     });
 
@@ -329,7 +230,7 @@ async function fetchStatuses() {
       return;
     }
 
-    const isAdmin = getAdminToken().length > 0;
+    const isAdmin = (localStorage.getItem("admin_token") || "").length > 0;
     listEl.innerHTML = "";
     items.forEach(item => {
       const dateStr = formatDate(item.created_at);
@@ -358,6 +259,8 @@ function initStatusPosting() {
   const postBtn = document.getElementById("status-post-btn");
   const inputEl = document.getElementById("status-new-input");
   if (!postBtn) return;
+
+  const getAdminToken = () => localStorage.getItem("admin_token") || "";
 
   postBtn.onclick = async () => {
     const content = inputEl.value;
@@ -391,6 +294,7 @@ function initStatusPosting() {
 
 window.deleteStatus = async (id) => {
   if (!confirm("この近況を削除しますか？")) return;
+  const adminToken = localStorage.getItem("admin_token") || "";
   if (!csrfToken) await fetchCsrfToken();
 
   try {
@@ -398,7 +302,7 @@ window.deleteStatus = async (id) => {
       method: "DELETE",
       headers: { 
         "X-CSRF-Token": csrfToken,
-        "X-Admin-Token": getAdminToken()
+        "X-Admin-Token": adminToken
       }
     });
 
@@ -414,96 +318,8 @@ window.deleteStatus = async (id) => {
   }
 };
 
-async function updateCounter() {
-  const device_id = getDeviceId();
-  try {
-    await fetch("/api/counter/increment", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ device_id }),
-    });
-    const res = await fetch("/api/counter");
-    const data = await res.json();
-    const counterElement = document.getElementById("counter");
-    if (counterElement) {
-      counterElement.innerText = String(data.count).padStart(6, "0");
-    }
-  } catch (err) {
-    console.error("Counter error:", err);
-  }
-}
-
-// ===== Web 拍手機能 =====
-const socket = io();
-
-async function updateClapCountDisplay() {
-  try {
-    const res = await fetch("/api/claps/count");
-    const data = await res.json();
-    const countEl = document.getElementById("clap-count");
-    if (countEl) countEl.innerText = `${data.total} 拍手`;
-  } catch (err) {
-    console.error("Clap count error:", err);
-  }
-}
-
-socket.on("clap_update", (data) => {
-  const countEl = document.getElementById("clap-count");
-  if (countEl) countEl.innerText = `${data.total} 拍手`;
-});
-
-function initClapEvents() {
-  const openBtn = document.getElementById("open-clap-modal");
-  const closeBtn = document.getElementById("close-clap-modal");
-  const sendBtn = document.getElementById("send-clap");
-  const modal = document.getElementById("clap-modal");
-  const overlay = document.getElementById("clap-overlay");
-  const messageInput = document.getElementById("clap-message");
-
-  if (!openBtn || !modal || !overlay) return;
-
-  const openModal = () => {
-    modal.style.display = "block";
-    overlay.style.display = "block";
-    messageInput.value = "";
-    messageInput.focus();
-  };
-
-  const closeModal = () => {
-    modal.style.display = "none";
-    overlay.style.display = "none";
-  };
-
-  openBtn.addEventListener("click", openModal);
-  closeBtn.addEventListener("click", closeModal);
-  overlay.addEventListener("click", closeModal);
-
-  sendBtn.addEventListener("click", async () => {
-    const message = messageInput.value;
-    const device_id = getDeviceId();
-
-    try {
-      const res = await fetch("/api/claps", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, device_id })
-      });
-
-      if (res.ok) {
-        alert("拍手を送信しました！ありがとうございます！");
-        closeModal();
-      } else {
-        alert("送信に失敗しました。");
-      }
-    } catch (err) {
-      alert("通信エラーが発生しました。");
-    }
-  });
-}
-
 // 拍手メッセージ表示 (全ユーザー公開)
 async function fetchPublicClaps() {
-  // トップページ以外では表示しない
   const isTopPage = location.pathname === "/" || location.pathname.endsWith("/index.html");
   if (!isTopPage) return;
 
@@ -529,7 +345,7 @@ async function fetchPublicClaps() {
       item.className = "admin-clap-item";
       const dateStr = formatDate(c.created_at);
       const msg = c.message || "";
-      if (!msg) return; // メッセージがない場合はスキップ
+      if (!msg) return;
 
       item.innerHTML = `
         <span class="date">[${dateStr}]</span> 
@@ -550,24 +366,11 @@ async function fetchPublicClaps() {
 
 // ページ読み込み完了時に実行
 document.addEventListener('DOMContentLoaded', async () => {
-  await fetchCsrfToken(); // 最初にトークンを取得
-  updateAdminUI();
-  updateCounter();
+  await fetchCsrfToken();
   fetchNews();
   initNewsPosting();
-  initNewsEvents(); // イベントリスナーの設定
+  initNewsEvents();
   fetchStatuses();
   initStatusPosting();
-  initClapEvents();
   fetchPublicClaps();
-  updateClapCountDisplay();
 });
-
-// 万が一 DOMContentLoaded が発火済みのケースに対応
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  updateAdminUI();
-}
-
-// グローバルに公開
-window.adminLogin = adminLogin;
-window.adminLogout = adminLogout;

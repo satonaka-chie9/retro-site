@@ -15,85 +15,6 @@ function getAdminToken() {
   return (token && token !== "undefined") ? token : "";
 }
 
-// 管理者ログイン (既存のものを流用)
-async function adminLogin() {
-  const userInput = document.getElementById("admin-user");
-  const passInput = document.getElementById("admin-pass");
-  const msgArea = document.getElementById("admin-msg");
-  
-  if (!userInput || !passInput) return;
-
-  const username = userInput.value;
-  const password = passInput.value;
-
-  if (msgArea) {
-    msgArea.style.color = "#00FF00";
-    msgArea.innerText = "認証中...";
-  }
-
-  if (!csrfToken) await fetchCsrfToken();
-
-  try {
-    const res = await fetch("/api/admin/login", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "X-CSRF-Token": csrfToken
-      },
-      body: JSON.stringify({ username, password })
-    });
-
-    const data = await res.json();
-    if (res.ok && data.success) {
-      localStorage.setItem("admin_token", data.admin_token);
-      setTimeout(() => location.reload(), 500);
-    } else {
-      if (msgArea) {
-        msgArea.style.color = "#FF0000";
-        msgArea.innerText = "ID/PASSが違います";
-      }
-      localStorage.removeItem("admin_token");
-      await fetchCsrfToken();
-    }
-  } catch (err) {
-    if (msgArea) {
-      msgArea.style.color = "#FF0000";
-      msgArea.innerText = "通信エラー";
-    }
-  }
-}
-
-function adminLogout() {
-  localStorage.removeItem("admin_token");
-  alert("ログアウトしました。");
-  location.reload();
-}
-
-function updateAdminUI() {
-  const token = getAdminToken();
-  const loginArea = document.getElementById("admin-login-area");
-  const logoutArea = document.getElementById("admin-logout-area");
-  const loginBtn = document.getElementById("admin-login-btn");
-  const logoutBtn = document.getElementById("admin-logout-btn");
-  const blogFormArea = document.getElementById("blog_post_form");
-
-  if (token) {
-    if (loginArea) loginArea.style.display = "none";
-    if (logoutArea) logoutArea.classList.remove("hidden");
-    if (blogFormArea) blogFormArea.style.display = "block";
-    if (logoutBtn) {
-      logoutBtn.onclick = adminLogout;
-    }
-  } else {
-    if (loginArea) loginArea.style.display = "block";
-    if (logoutArea) logoutArea.classList.add("hidden");
-    if (blogFormArea) blogFormArea.style.display = "none";
-    if (loginBtn) {
-      loginBtn.onclick = adminLogin;
-    }
-  }
-}
-
 function getDeviceId() {
   let deviceId = localStorage.getItem("device_id");
   if (!deviceId) {
@@ -103,76 +24,29 @@ function getDeviceId() {
   return deviceId;
 }
 
-// ===== Web 拍手機能 =====
-const socket = io();
-
-async function updateClapCountDisplay() {
-  try {
-    const res = await fetch("/api/claps/count");
-    const data = await res.json();
-    const countEl = document.getElementById("clap-count");
-    if (countEl) countEl.innerText = `${data.total} 拍手`;
-  } catch (err) {
-    console.error("Clap count error:", err);
-  }
-}
-
-socket.on("clap_update", (data) => {
-  const countEl = document.getElementById("clap-count");
-  if (countEl) countEl.innerText = `${data.total} 拍手`;
-});
-
-function initClapEvents() {
-  const openBtn = document.getElementById("open-clap-modal");
-  const closeBtn = document.getElementById("close-clap-modal");
-  const sendBtn = document.getElementById("send-clap");
-  const modal = document.getElementById("clap-modal");
-  const overlay = document.getElementById("clap-overlay");
-  const messageInput = document.getElementById("clap-message");
-
-  if (!openBtn || !modal || !overlay) return;
-
-  const openModal = () => {
-    modal.style.display = "block";
-    overlay.style.display = "block";
-    messageInput.value = "";
-    messageInput.focus();
-  };
-
-  const closeModal = () => {
-    modal.style.display = "none";
-    overlay.style.display = "none";
-  };
-
-  openBtn.addEventListener("click", openModal);
-  closeBtn.addEventListener("click", closeModal);
-  overlay.addEventListener("click", closeModal);
-
-  sendBtn.addEventListener("click", async () => {
-    const message = messageInput.value;
-    const device_id = getDeviceId();
-
-    try {
-      const res = await fetch("/api/claps", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, device_id })
-      });
-
-      if (res.ok) {
-        alert("拍手を送信しました！ありがとうございます！");
-        closeModal();
-      } else {
-        alert("送信に失敗しました。");
-      }
-    } catch (err) {
-      alert("通信エラーが発生しました。");
-    }
+function formatDate(dateInput) {
+  if (!dateInput) return "";
+  let date;
+  if (dateInput instanceof Date) date = dateInput;
+  else if (typeof dateInput === "string") {
+    if (dateInput.includes("T") || dateInput.includes("Z")) date = new Date(dateInput);
+    else date = new Date(dateInput.replace(" ", "T") + "Z");
+  } else date = new Date(dateInput);
+  if (isNaN(date.getTime())) return "日付不明";
+  const formatter = new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric", month: "numeric", day: "numeric",
+    hour: "numeric", minute: "2-digit", second: "2-digit", hour12: false
   });
+  const parts = formatter.formatToParts(date);
+  const p = {};
+  parts.forEach(part => p[part.type] = part.value);
+  return `${p.year}/${p.month}/${p.day} ${p.hour}:${p.minute}:${p.second}`;
 }
 
 async function loadBlogs() {
   const container = document.getElementById("blog_container");
+  if (!container) return;
   try {
     const res = await fetch("/api/blog");
     const blogs = await res.json();
@@ -183,6 +57,8 @@ async function loadBlogs() {
     }
 
     const isAdmin = getAdminToken().length > 0;
+    const blogFormArea = document.getElementById("blog_post_form");
+    if (isAdmin && blogFormArea) blogFormArea.classList.remove("hidden");
 
     container.innerHTML = "";
     blogs.forEach(blog => {
@@ -228,11 +104,9 @@ async function loadBlogs() {
   }
 }
 
-// イベント委譲によるブログ操作
 function initBlogEvents() {
   const container = document.getElementById("blog_container");
   if (!container) return;
-
   container.addEventListener("click", (e) => {
     if (e.target.classList.contains("blog-delete-btn")) {
       const id = e.target.dataset.id;
@@ -244,7 +118,6 @@ function initBlogEvents() {
 async function deleteBlog(id) {
   if (!confirm("本当にこの記事を削除しますか？")) return;
   if (!csrfToken) await fetchCsrfToken();
-
   try {
     const res = await fetch(`/api/blog/${id}`, {
       method: "DELETE",
@@ -265,26 +138,6 @@ async function deleteBlog(id) {
   }
 }
 
-function formatDate(dateInput) {
-  if (!dateInput) return "";
-  let date;
-  if (dateInput instanceof Date) date = dateInput;
-  else if (typeof dateInput === "string") {
-    if (dateInput.includes("T") || dateInput.includes("Z")) date = new Date(dateInput);
-    else date = new Date(dateInput.replace(" ", "T") + "Z");
-  } else date = new Date(dateInput);
-  if (isNaN(date.getTime())) return "日付不明";
-  const formatter = new Intl.DateTimeFormat("ja-JP", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric", month: "numeric", day: "numeric",
-    hour: "numeric", minute: "2-digit", second: "2-digit", hour12: false
-  });
-  const parts = formatter.formatToParts(date);
-  const p = {};
-  parts.forEach(part => p[part.type] = part.value);
-  return `${p.year}/${p.month}/${p.day} ${p.hour}:${p.minute}:${p.second}`;
-}
-
 const blogForm = document.getElementById("blogForm");
 const blogImageInput = document.getElementById("blog_image");
 const fileNameDisplay = document.getElementById("file_name_display");
@@ -300,11 +153,8 @@ if (blogForm) {
   blogForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!csrfToken) await fetchCsrfToken();
-
     const formData = new FormData(blogForm);
-    // 管理者トークンも追加
     formData.append("admin_token", getAdminToken());
-
     try {
       const res = await fetch("/api/blog", {
         method: "POST",
@@ -314,10 +164,9 @@ if (blogForm) {
         },
         body: formData
       });
-
       if (res.ok) {
         blogForm.reset();
-        if (fileNameDisplay) fileNameDisplay.innerText = "選択されていません"; // リセット時
+        if (fileNameDisplay) fileNameDisplay.innerText = "選択されていません";
         loadBlogs();
       } else {
         const data = await res.json();
@@ -330,39 +179,8 @@ if (blogForm) {
   });
 }
 
-async function updateCounter() {
-  const device_id = localStorage.getItem("device_id") || "guest";
-  try {
-    await fetch("/api/counter/increment", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ device_id }),
-    });
-    const res = await fetch("/api/counter");
-    const data = await res.json();
-    const counterElement = document.getElementById("counter");
-    if (counterElement) {
-      counterElement.innerText = String(data.count).padStart(6, "0");
-    }
-  } catch (err) {
-    console.error(err);
-  }
-}
-
 document.addEventListener("DOMContentLoaded", async () => {
   await fetchCsrfToken();
-  updateAdminUI();
-  updateCounter();
   loadBlogs();
   initBlogEvents();
-  initClapEvents();
-  updateClapCountDisplay();
 });
-
-// 万が一 DOMContentLoaded が発火済みのケースに対応
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  updateAdminUI();
-}
-
-window.adminLogin = adminLogin;
-window.adminLogout = adminLogout;
