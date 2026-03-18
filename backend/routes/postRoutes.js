@@ -125,6 +125,7 @@ router.post("/", postLimiter, checkIPBan, postValidation, validate, async (req, 
           return res.status(500).json({ error: "サーバー内部エラーが発生しました" });
         }
         // 実際に使用された名前を返す
+        if (req.io) req.io.emit("post_update");
         res.json({ success: true, used_name: resolvedName });
       }
     );
@@ -162,6 +163,7 @@ router.put("/:id", checkIPBan, postValidation, validate, (req, res) => {
           return res.status(500).json({ error: "サーバー内部エラーが発生しました" });
         }
         logger.logAction("EDIT", "post", id, { name, content, device_id });
+        if (req.io) req.io.emit("post_update");
         res.json({ success: true });
       }
     );
@@ -194,6 +196,7 @@ router.delete("/:id", checkIPBan, (req, res) => {
         return res.status(500).json({ error: "サーバー内部エラーが発生しました" });
       }
       logger.logAction("DELETE", "post", id, { device_id });
+      if (req.io) req.io.emit("post_update");
       res.json({ success: true });
     });
   });

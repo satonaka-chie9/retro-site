@@ -361,6 +361,10 @@ socket.on("clap_update", (data) => {
   if (countEl) countEl.innerText = `${data.total} 拍手`;
 });
 
+socket.on("post_update", () => {
+  loadPosts();
+});
+
 function initClapEvents() {
   const openBtn = document.getElementById("open-clap-modal");
   const closeBtn = document.getElementById("close-clap-modal");
@@ -429,5 +433,3 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 // グローバルに公開
 window.adminLogin = adminLogin;
 window.adminLogout = adminLogout;
-
-setInterval(loadPosts, 5000);
