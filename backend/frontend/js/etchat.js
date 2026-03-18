@@ -1,98 +1,14 @@
-// Socket.io の接続
 const socket = io();
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const brushCursor = document.getElementById('brush-cursor');
+const colorPicker = document.getElementById('colorPicker');
+const brushSize = document.getElementById('brushSize');
 
-let csrfToken = "";
-
-async function fetchCsrfToken() {
-  try {
-    const res = await fetch("/api/csrf-token");
-    const data = await res.json();
-    csrfToken = data.csrfToken;
-  } catch (err) {
-    console.error("Failed to fetch CSRF token:", err);
-  }
-}
-
-function getAdminToken() {
-  const token = localStorage.getItem("admin_token");
-  return (token && token !== "undefined") ? token : "";
-}
-
-// 管理者ログイン
-async function adminLogin() {
-  const userInput = document.getElementById("admin-user");
-  const passInput = document.getElementById("admin-pass");
-  const msgArea = document.getElementById("admin-msg");
-  
-  if (!userInput || !passInput) return;
-
-  const username = userInput.value;
-  const password = passInput.value;
-
-  if (msgArea) {
-    msgArea.style.color = "#00FF00";
-    msgArea.innerText = "認証中...";
-  }
-
-  if (!csrfToken) await fetchCsrfToken();
-
-  try {
-    const res = await fetch("/api/admin/login", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "X-CSRF-Token": csrfToken
-      },
-      body: JSON.stringify({ username, password })
-    });
-
-    const data = await res.json();
-    if (res.ok && data.success) {
-      localStorage.setItem("admin_token", data.admin_token);
-      setTimeout(() => location.reload(), 500);
-    } else {
-      if (msgArea) {
-        msgArea.style.color = "#FF0000";
-        msgArea.innerText = "ID/PASSが違います";
-      }
-      localStorage.removeItem("admin_token");
-      await fetchCsrfToken();
-    }
-  } catch (err) {
-    if (msgArea) {
-      msgArea.style.color = "#FF0000";
-      msgArea.innerText = "通信エラー";
-    }
-  }
-}
-
-function adminLogout() {
-  localStorage.removeItem("admin_token");
-  alert("ログアウトしました。");
-  location.reload();
-}
-
-function updateAdminUI() {
-  const token = getAdminToken();
-  const loginArea = document.getElementById("admin-login-area");
-  const logoutArea = document.getElementById("admin-logout-area");
-  const loginBtn = document.getElementById("admin-login-btn");
-  const logoutBtn = document.getElementById("admin-logout-btn");
-
-  if (token) {
-    if (loginArea) loginArea.style.display = "none";
-    if (logoutArea) logoutArea.classList.remove("hidden");
-    if (logoutBtn) {
-      logoutBtn.onclick = adminLogout;
-    }
-  } else {
-    if (loginArea) loginArea.style.display = "block";
-    if (logoutArea) logoutArea.classList.add("hidden");
-    if (loginBtn) {
-      loginBtn.onclick = adminLogin;
-    }
-  }
-}
+let drawing = false;
+let currentTool = 'pen';
+let startX, startY;
+let snapshot;
 
 function getDeviceId() {
   let deviceId = localStorage.getItem("device_id");
@@ -103,484 +19,215 @@ function getDeviceId() {
   return deviceId;
 }
 
-// ===== Web 拍手機能 =====
-async function updateClapCountDisplay() {
-  try {
-    const res = await fetch("/api/claps/count");
-    const data = await res.json();
-    const countEl = document.getElementById("clap-count");
-    if (countEl) countEl.innerText = `${data.total} 拍手`;
-  } catch (err) {
-    console.error("Clap count error:", err);
-  }
-}
-
-socket.on("clap_update", (data) => {
-  const countEl = document.getElementById("clap-count");
-  if (countEl) countEl.innerText = `${data.total} 拍手`;
-});
-
-function initClapEvents() {
-  const openBtn = document.getElementById("open-clap-modal");
-  const closeBtn = document.getElementById("close-clap-modal");
-  const sendBtn = document.getElementById("send-clap");
-  const modal = document.getElementById("clap-modal");
-  const overlay = document.getElementById("clap-overlay");
-  const messageInput = document.getElementById("clap-message");
-
-  if (!openBtn || !modal || !overlay) return;
-
-  const openModal = () => {
-    modal.style.display = "block";
-    overlay.style.display = "block";
-    messageInput.value = "";
-    messageInput.focus();
-  };
-
-  const closeModal = () => {
-    modal.style.display = "none";
-    overlay.style.display = "none";
-  };
-
-  openBtn.addEventListener("click", openModal);
-  closeBtn.addEventListener("click", closeModal);
-  overlay.addEventListener("click", closeModal);
-
-  sendBtn.addEventListener("click", async () => {
-    const message = messageInput.value;
-    const device_id = getDeviceId();
-
-    try {
-      const res = await fetch("/api/claps", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, device_id })
-      });
-
-      if (res.ok) {
-        alert("拍手を送信しました！ありがとうございます！");
-        closeModal();
-      } else {
-        alert("送信に失敗しました。");
-      }
-    } catch (err) {
-      alert("通信エラーが発生しました。");
-    }
-  });
-}
-
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-const brushCursor = document.getElementById('brush-cursor');
-
-let drawing = false;
-let startX, startY;
-let snapshot; // プレビュー用のキャンバス状態保存
-
-let current = {
-  color: '#000000',
-  size: 3,
-  tool: 'pen'
-};
-
-// 履歴管理
-let history = [];
-let historyIndex = -1;
-let saveTimeout = null;
-
-function saveState() {
-  historyIndex++;
-  if (historyIndex < history.length) {
-    history.splice(historyIndex);
-  }
-  history.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
-}
-
-// 初期状態を保存 (背景をグレーで塗りつぶす)
-ctx.fillStyle = "#808080";
-ctx.fillRect(0, 0, canvas.width, canvas.height);
-saveState();
-
-function requestSaveState() {
-  if (saveTimeout) clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(() => {
-    saveState();
-  }, 500);
-}
-
-// UI 操作
-const colorPicker = document.getElementById("colorPicker");
-const brushSize = document.getElementById("brushSize");
-const toolButtons = document.querySelectorAll(".tool-btn");
-
-if (colorPicker) {
-  colorPicker.addEventListener("change", e => {
-    current.color = e.target.value;
-  });
-}
-
-if (brushSize) {
-  brushSize.addEventListener("input", e => {
-    current.size = parseInt(e.target.value);
-  });
-}
-
-// ツール切り替え (CSP準拠のイベントリスナー)
-toolButtons.forEach(btn => {
-  btn.addEventListener("click", () => {
-    const tool = btn.dataset.tool;
-    current.tool = tool;
-    
-    // アクティブ表示の切り替え
-    toolButtons.forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-
-    if (tool === 'eraser') {
-      current.color = '#808080'; // 背景色と同じ
-    } else if (tool === 'pen' || tool === 'line' || tool === 'rect' || tool === 'fill') {
-      current.color = colorPicker.value;
-    }
+// ツールボタンの切り替え
+document.querySelectorAll('.tool-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTool = btn.dataset.tool;
   });
 });
 
-// 戻る / 進む (同期)
-function performUndo(emit = false) {
-  if (historyIndex > 0) {
-    historyIndex--;
-    ctx.putImageData(history[historyIndex], 0, 0);
-    if (emit) socket.emit("undo");
-  }
-}
-
-function performRedo(emit = false) {
-  if (historyIndex < history.length - 1) {
-    historyIndex++;
-    ctx.putImageData(history[historyIndex], 0, 0);
-    if (emit) socket.emit("redo");
-  }
-}
-
-document.getElementById("btn_undo").addEventListener("click", () => performUndo(true));
-document.getElementById("btn_redo").addEventListener("click", () => performRedo(true));
-
-socket.on("undo", () => performUndo(false));
-socket.on("redo", () => performRedo(false));
-
-// 全消し
-document.getElementById("btn_clear").addEventListener("click", () => {
-  if (confirm("キャンバスをすべて消去しますか？")) {
-    socket.emit("clearCanvas");
-  }
-});
-
-socket.on("clearCanvas", () => {
-  ctx.fillStyle = "#808080";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  saveState();
-});
-
-/* ===== 描画ロジック ===== */
-
-function drawFreeLine(x0, y0, x1, y1, color, size, emit) {
-  ctx.beginPath();
-  ctx.moveTo(x0, y0);
-  ctx.lineTo(x1, y1);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = size;
-  ctx.lineCap = 'round';
-  ctx.stroke();
-  ctx.closePath();
-
-  if (emit) {
-    socket.emit('drawing', { type: 'pen', x0, y0, x1, y1, color, size });
-  }
-}
-
-function drawShape(type, x0, y0, x1, y1, color, size, emit) {
-  ctx.beginPath();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = size;
-  if (type === 'line') {
-    ctx.moveTo(x0, y0);
-    ctx.lineTo(x1, y1);
-  } else if (type === 'rect') {
-    ctx.rect(x0, y0, x1 - x0, y1 - y0);
-  }
-  ctx.stroke();
-  ctx.closePath();
-
-  if (emit) {
-    socket.emit('drawing', { type, x0, y0, x1, y1, color, size });
-  }
-}
-
-// 塗りつぶし (Flood Fill)
-function floodFill(startX, startY, fillColor, emit) {
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const data = imageData.data;
-  const targetColor = getPixel(startX, startY, data);
-  const fillRGB = hexToRgb(fillColor);
-
-  if (colorsMatch(targetColor, [fillRGB.r, fillRGB.g, fillRGB.b, 255])) return;
-
-  const stack = [[startX, startY]];
-  while (stack.length > 0) {
-    const [x, y] = stack.pop();
-    let currentY = y;
-    while (currentY >= 0 && colorsMatch(getPixel(x, currentY, data), targetColor)) {
-      currentY--;
-    }
-    currentY++;
-    let reachLeft = false;
-    let reachRight = false;
-    while (currentY < canvas.height && colorsMatch(getPixel(x, currentY, data), targetColor)) {
-      setPixel(x, currentY, fillRGB, data);
-      if (x > 0) {
-        if (colorsMatch(getPixel(x - 1, currentY, data), targetColor)) {
-          if (!reachLeft) {
-            stack.push([x - 1, currentY]);
-            reachLeft = true;
-          }
-        } else if (reachLeft) {
-          reachLeft = false;
-        }
-      }
-      if (x < canvas.width - 1) {
-        if (colorsMatch(getPixel(x + 1, currentY, data), targetColor)) {
-          if (!reachRight) {
-            stack.push([x + 1, currentY]);
-            reachRight = true;
-          }
-        } else if (reachRight) {
-          reachRight = false;
-        }
-      }
-      currentY++;
-    }
-  }
-  ctx.putImageData(imageData, 0, 0);
-  if (emit) {
-    socket.emit('drawing', { type: 'fill', x: startX, y: startY, color: fillColor });
-  }
-}
-
-function getPixel(x, y, data) {
-  const i = (y * canvas.width + x) * 4;
-  return [data[i], data[i+1], data[i+2], data[i+3]];
-}
-
-function setPixel(x, y, rgb, data) {
-  const i = (y * canvas.width + x) * 4;
-  data[i] = rgb.r;
-  data[i+1] = rgb.g;
-  data[i+2] = rgb.b;
-  data[i+3] = 255;
-}
-
-function colorsMatch(c1, c2) {
-  return c1[0] === c2[0] && c1[1] === c2[1] && c1[2] === c2[2] && c1[3] === c2[3];
-}
-
-function hexToRgb(hex) {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
-  } : null;
-}
-
-/* ===== イベントハンドラ ===== */
-
-function updateBrushCursor(e) {
-  if (!brushCursor) return;
+// キャンバス操作
+canvas.addEventListener('mousedown', (e) => {
+  drawing = true;
   const rect = canvas.getBoundingClientRect();
-  const x = (e.clientX || (e.touches ? e.touches[0].clientX : 0)) - rect.left;
-  const y = (e.clientY || (e.touches ? e.touches[0].clientY : 0)) - rect.top;
-
-  brushCursor.style.width = current.size + 'px';
-  brushCursor.style.height = current.size + 'px';
-  brushCursor.style.left = (x - current.size / 2) + 'px';
-  brushCursor.style.top = (y - current.size / 2) + 'px';
-  brushCursor.style.display = 'block';
-}
-
-function onMouseDown(e) {
-  const rect = canvas.getBoundingClientRect();
-  startX = (e.clientX || (e.touches ? e.touches[0].clientX : 0)) - rect.left;
-  startY = (e.clientY || (e.touches ? e.touches[0].clientY : 0)) - rect.top;
+  startX = e.clientX - rect.left;
+  startY = e.clientY - rect.top;
   
-  if (current.tool === 'fill') {
-    floodFill(Math.floor(startX), Math.floor(startY), current.color, true);
-    saveState();
+  if (currentTool === 'fill') {
+    fill(startX, startY, colorPicker.value);
+    syncCanvas();
     return;
   }
 
-  drawing = true;
-  current.x = startX;
-  current.y = startY;
+  ctx.beginPath();
+  ctx.moveTo(startX, startY);
   snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
-}
+});
 
-function onMouseMove(e) {
-  updateBrushCursor(e);
-  if (!drawing) return;
+canvas.addEventListener('mousemove', (e) => {
   const rect = canvas.getBoundingClientRect();
-  const x = (e.clientX || (e.touches ? e.touches[0].clientX : 0)) - rect.left;
-  const y = (e.clientY || (e.touches ? e.touches[0].clientY : 0)) - rect.top;
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
 
-  if (current.tool === 'pen' || current.tool === 'eraser') {
-    drawFreeLine(current.x, current.y, x, y, current.color, current.size, true);
-    current.x = x;
-    current.y = y;
-  } else if (current.tool === 'line' || current.tool === 'rect') {
-    ctx.putImageData(snapshot, 0, 0); // プレビューのために一度戻す
-    drawShape(current.tool, startX, startY, x, y, current.color, current.size, false);
+  // ブラシカーソルの更新
+  brushCursor.style.left = `${e.clientX}px`;
+  brushCursor.style.top = `${e.clientY}px`;
+  brushCursor.style.width = `${brushSize.value}px`;
+  brushCursor.style.height = `${brushSize.value}px`;
+  brushCursor.style.backgroundColor = colorPicker.value;
+
+  if (!drawing || currentTool === 'fill') return;
+
+  if (currentTool === 'pen' || currentTool === 'eraser') {
+    ctx.globalCompositeOperation = currentTool === 'eraser' ? 'destination-out' : 'source-over';
+    ctx.strokeStyle = colorPicker.value;
+    ctx.lineWidth = brushSize.value;
+    ctx.lineCap = 'round';
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    
+    socket.emit('drawing', {
+      type: 'pen',
+      x, y,
+      lastX: startX, lastY: startY,
+      color: colorPicker.value,
+      size: brushSize.value,
+      isEraser: currentTool === 'eraser'
+    });
+    startX = x;
+    startY = y;
+  } else {
+    // 直線や四角はプレビュー表示のためスナップショットを戻す
+    ctx.putImageData(snapshot, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = colorPicker.value;
+    ctx.lineWidth = brushSize.value;
+    
+    if (currentTool === 'line') {
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    } else if (currentTool === 'rect') {
+      ctx.strokeRect(startX, startY, x - startX, y - startY);
+    }
   }
-}
+});
 
-function onMouseUp(e) {
+canvas.addEventListener('mouseup', (e) => {
   if (!drawing) return;
   drawing = false;
 
   const rect = canvas.getBoundingClientRect();
-  const x = (e.clientX || (e.touches ? e.touches[0].clientX : 0)) - rect.left;
-  const y = (e.clientY || (e.touches ? e.touches[0].clientY : 0)) - rect.top;
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
 
-  if (current.tool === 'line' || current.tool === 'rect') {
-    drawShape(current.tool, startX, startY, x, y, current.color, current.size, true);
+  if (currentTool === 'line' || currentTool === 'rect') {
+    socket.emit('drawing', {
+      type: currentTool,
+      startX, startY, x, y,
+      color: colorPicker.value,
+      size: brushSize.value
+    });
   }
+});
 
-  saveState();
+// 塗りつぶし (簡易版シードフィル)
+function fill(startX, startY, fillColor) {
+  const targetColor = getPixelColor(startX, startY);
+  const fillRGB = hexToRgb(fillColor);
+  if (colorsMatch(targetColor, fillRGB)) return;
+
+  const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const stack = [[Math.round(startX), Math.round(startY)]];
+  
+  while (stack.length > 0) {
+    const [x, y] = stack.pop();
+    const currentPos = (y * canvas.width + x) * 4;
+    
+    if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) continue;
+    if (!colorsMatch(getPixelAt(pixels, x, y), targetColor)) continue;
+
+    setPixelAt(pixels, x, y, fillRGB);
+    stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+  }
+  ctx.putImageData(pixels, 0, 0);
+  
+  socket.emit('drawing', {
+    type: 'fill',
+    x: startX, y: startY,
+    color: fillColor
+  });
 }
 
-// マウス・タッチイベント登録
-canvas.addEventListener('mousedown', onMouseDown, false);
-canvas.addEventListener('mousemove', onMouseMove, false);
-window.addEventListener('mouseup', onMouseUp, false);
+function getPixelColor(x, y) {
+  const p = ctx.getImageData(x, y, 1, 1).data;
+  return { r: p[0], g: p[1], b: p[2], a: p[3] };
+}
+function getPixelAt(imgData, x, y) {
+  const i = (y * imgData.width + x) * 4;
+  return { r: imgData.data[i], g: imgData.data[i+1], b: imgData.data[i+2], a: imgData.data[i+3] };
+}
+function setPixelAt(imgData, x, y, rgb) {
+  const i = (y * imgData.width + x) * 4;
+  imgData.data[i] = rgb.r; imgData.data[i+1] = rgb.g; imgData.data[i+2] = rgb.b; imgData.data[i+3] = 255;
+}
+function colorsMatch(c1, c2) {
+  return c1.r === c2.r && c1.g === c2.g && c1.b === c2.b;
+}
+function hexToRgb(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
+}
 
-canvas.addEventListener('mouseenter', (e) => {
-  if (brushCursor) brushCursor.style.display = 'block';
-});
-canvas.addEventListener('mouseleave', (e) => {
-  if (brushCursor) brushCursor.style.display = 'none';
-});
-
-canvas.addEventListener('touchstart', onMouseDown, { passive: false });
-canvas.addEventListener('touchmove', onMouseMove, { passive: false });
-window.addEventListener('touchend', onMouseUp, { passive: false });
-
-// サーバーからの描画データ受信
+// ソケット受信
 socket.on('drawing', (data) => {
-  if (data.type === 'pen' || !data.type) {
-    drawFreeLine(data.x0, data.y0, data.x1, data.y1, data.color, data.size, false);
-  } else if (data.type === 'line' || data.type === 'rect') {
-    drawShape(data.type, data.x0, data.y0, data.x1, data.y1, data.color, data.size, false);
+  ctx.globalCompositeOperation = data.isEraser ? 'destination-out' : 'source-over';
+  ctx.strokeStyle = data.color;
+  ctx.lineWidth = data.size;
+  ctx.lineCap = 'round';
+
+  if (data.type === 'pen') {
+    ctx.beginPath();
+    ctx.moveTo(data.lastX, data.lastY);
+    ctx.lineTo(data.x, data.y);
+    ctx.stroke();
+  } else if (data.type === 'line') {
+    ctx.beginPath();
+    ctx.moveTo(data.startX, data.startY);
+    ctx.lineTo(data.x, data.y);
+    ctx.stroke();
+  } else if (data.type === 'rect') {
+    ctx.strokeRect(data.startX, data.startY, data.x - data.startX, data.y - data.startY);
   } else if (data.type === 'fill') {
-    floodFill(Math.floor(data.x), Math.floor(data.y), data.color, false);
+    fill(data.x, data.y, data.color);
   }
-  requestSaveState();
 });
 
-/* ===== チャット・カウンタ (既存のまま) ===== */
-
-const chatForm = document.getElementById("chatForm");
-const chatInput = document.getElementById("chatInput");
-const chatName = document.getElementById("chatName");
-const chatMessages = document.getElementById("chat_messages");
-
-function getDeviceId() {
-  let deviceId = localStorage.getItem("device_id");
-  if (!deviceId) {
-    deviceId = crypto.randomUUID();
-    localStorage.setItem("device_id", deviceId);
-  }
-  return deviceId;
-}
-
-function restoreChatName() {
-  const savedName = localStorage.getItem("bbs_user_name");
-  if (savedName && chatName) {
-    chatName.value = savedName;
-  }
-}
-
-// 入力時に保存するようにして、送信しなくても保持されるようにする
-if (chatName) {
-  chatName.addEventListener("input", (e) => {
-    localStorage.setItem("bbs_user_name", e.target.value);
-  });
-}
-
-if (chatForm) {
-  chatForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const name = chatName.value || "名無しさん";
-    const message = chatInput.value;
-    localStorage.setItem("bbs_user_name", name);
-    if (message) {
-      socket.emit("chat", { name, message, device_id: getDeviceId() });
-      chatInput.value = "";
-    }
-  });
-}
-
-function addChatMessage(data) {
-  const msgDiv = document.createElement("div");
-  msgDiv.className = "chat_message_item";
-  
-  const nameSpan = document.createElement("strong");
-  nameSpan.textContent = data.name;
-  
-  const msgSpan = document.createElement("span");
-  msgSpan.textContent = `: ${data.message}`;
-  
-  msgDiv.appendChild(nameSpan);
-  msgDiv.appendChild(msgSpan);
-
-  if (chatMessages) {
-    chatMessages.appendChild(msgDiv);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-  }
-}
-
-socket.on("chat", (data) => {
-  addChatMessage(data);
+socket.on('chat_history', (rows) => {
+  const chatMessages = document.getElementById('chat_messages');
+  chatMessages.innerHTML = '';
+  rows.forEach(appendMessage);
 });
 
-socket.on("chat_history", (history) => {
-  if (chatMessages) chatMessages.innerHTML = "";
-  history.forEach(data => {
-    addChatMessage(data);
-  });
-});
+socket.on('chat', appendMessage);
 
-async function updateCounter() {
-  const device_id = getDeviceId();
-  try {
-    await fetch("/api/counter/increment", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ device_id }) });
-    const res = await fetch("/api/counter");
-    const data = await res.json();
-    const counterElement = document.getElementById("counter");
-    if (counterElement) counterElement.innerText = String(data.count).padStart(6, "0");
-  } catch (err) { console.error(err); }
+function appendMessage(data) {
+  const chatMessages = document.getElementById('chat_messages');
+  const div = document.createElement('div');
+  div.className = 'chat-msg';
+  div.innerHTML = `<span class="chat-name"></span>: <span class="chat-text"></span>`;
+  div.querySelector('.chat-name').textContent = data.name;
+  div.querySelector('.chat-text').textContent = data.message;
+  chatMessages.appendChild(div);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// ページ読み込み完了時に実行
-document.addEventListener('DOMContentLoaded', async () => {
-  await fetchCsrfToken();
-  updateAdminUI();
-  restoreChatName();
-  updateCounter();
-  initClapEvents();
-  updateClapCountDisplay();
+// 操作ボタン
+document.getElementById('btn_undo').onclick = () => socket.emit('undo');
+document.getElementById('btn_redo').onclick = () => socket.emit('redo');
+document.getElementById('btn_clear').onclick = () => {
+  if (confirm('キャンバスを全消去しますか？')) {
+    socket.emit('clearCanvas');
+  }
+};
+
+socket.on('clearCanvas', () => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 });
 
-// 万が一 DOMContentLoaded が発火済みのケースに対応
-if (document.readyState === 'complete' || document.readyState === 'interactive') {
-  updateAdminUI();
-}
+// チャット
+document.getElementById('chatForm').onsubmit = (e) => {
+  e.preventDefault();
+  const name = document.getElementById('chatName').value;
+  const message = document.getElementById('chatInput').value;
+  socket.emit('chat', { name, message, device_id: getDeviceId() });
+  document.getElementById('chatInput').value = '';
+};
 
-// グローバルに公開
-window.adminLogin = adminLogin;
-window.adminLogout = adminLogout;
+// キャンバス全同期 (Undo/Redoなどで使用)
+function syncCanvas() {
+  // 本来は画像データを送るが、ここでは簡易化のため省略
+}

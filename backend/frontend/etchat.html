@@ -14,27 +14,8 @@
 
 <div class="layout">
 
-  <!-- サイドバー（BBSと同じ） -->
-  <div class="side_menu">
-    <a href="index.html">TOP</a>
-    <a href="bbs.html">BBS</a>
-    <a href="blog.html">日記</a>
-    <a href="profile.html">PROFILE</a>
-    <a href="Link_collection.html">リンク集</a>
-    
-    <p class="menu_title">アクセスカウンタ</p>
-    <div class="counter" id="counter">
-      <span>00000</span>
-    </div>
-    <p class="menu_title">キリ番はBBSまたは拍手にて報告ください</p>
-
-    <!-- Web拍手ボタン -->
-    <div class="clap-btn-container">
-      <span id="clap-count" class="clap-count-display">0 拍手</span>
-      <a href="javascript:void(0)" class="clap-btn" id="open-clap-modal">拍手</a>
-    </div>
-  </div>
-
+  <!-- サイドバー -->
+  <div id="sidebar-placeholder"></div>
 
   <!-- メイン -->
   <div class="main_content">
@@ -116,6 +97,7 @@
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
+<script src="js/sidebar.js"></script>
 <script src="js/etchat.js"></script>
 
 </body>
