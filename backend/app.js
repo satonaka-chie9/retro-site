@@ -110,7 +110,10 @@ const counterRoutes = require("./routes/counterRoutes");
 const postRoutes = require("./routes/postRoutes");
 const blogRoutes = require("./routes/blogRoutes");
 app.use("/api/counter", counterRoutes);
-app.use("/api/posts", csrfProtection, postRoutes);
+app.use("/api/posts", csrfProtection, (req, res, next) => {
+  req.io = io;
+  next();
+}, postRoutes);
 app.use("/api/blog", csrfProtection, blogRoutes);
 
 // --- お知らせ (News) API ---

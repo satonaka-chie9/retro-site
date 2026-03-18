@@ -8,21 +8,30 @@ if (!fs.existsSync(LOGS_DIR)) {
   fs.mkdirSync(LOGS_DIR, { recursive: true });
 }
 
+const isCloud = !!(process.env.SUPABASE_URL && process.env.SUPABASE_KEY);
+
 /**
- * Write a message to a specific log file.
+ * Write a message to a specific log file or console.
  * @param {string} fileName 
  * @param {string} message 
  */
 function writeLog(fileName, message) {
   const timestamp = new Date().toISOString();
-  const logLine = `[${timestamp}] ${message}\n`;
-  const filePath = path.join(LOGS_DIR, fileName);
-  
-  fs.appendFile(filePath, logLine, (err) => {
-    if (err) {
-      console.error(`Failed to write to log file: ${filePath}`, err);
-    }
-  });
+  const logLine = `[${timestamp}] ${message}`;
+
+  if (isCloud) {
+    // クラウド環境（Render等）では標準出力に流す
+    console.log(`[${fileName}] ${logLine}`);
+  } else {
+    // ローカル環境ではファイルに書き込む
+    const logLineWithNewLine = logLine + '\n';
+    const filePath = path.join(LOGS_DIR, fileName);
+    fs.appendFile(filePath, logLineWithNewLine, (err) => {
+      if (err) {
+        console.error(`Failed to write to log file: ${filePath}`, err);
+      }
+    });
+  }
 }
 
 /**

@@ -2,28 +2,13 @@ const express = require("express");
 const router = express.Router();
 const multer = require("multer");
 const path = require("path");
-const fs = require("fs");
 const db = require("../db/database");
 const logger = require("../services/logger");
+const storageService = require("../services/storageService");
 
 // 画像保存先の設定
-const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, "../uploads");
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    if (!fs.existsSync(UPLOAD_DIR)) {
-      fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-    }
-    cb(null, UPLOAD_DIR);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
 const upload = multer({ 
-  storage: storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif/;
@@ -70,9 +55,19 @@ const escapeHTML = (str) => {
 };
 
 // ブログ投稿 (画像付き)
-router.post("/", adminOnly, upload.single("image"), (req, res) => {
+router.post("/", adminOnly, upload.single("image"), async (req, res) => {
   let { title, content } = req.body;
-  const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+  
+  let imageUrl = null;
+  if (req.file) {
+    try {
+      const fileName = Date.now() + "-" + Math.round(Math.random() * 1e9) + path.extname(req.file.originalname);
+      imageUrl = await storageService.uploadFile(fileName, req.file.buffer, req.file.mimetype);
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: "画像の保存に失敗しました" });
+    }
+  }
 
   if (!title || !content) {
     return res.status(400).json({ error: "タイトルと本文は必須です" });

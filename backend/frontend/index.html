@@ -13,39 +13,7 @@
 <div class="layout">
 
   <!-- サイドバー -->
-  <div class="side_menu">
-    <a href="bbs.html">BBS</a>
-    <a href="blog.html">日記</a>
-    <a href="etchat.html">絵チャ</a>
-    <a href="profile.html">PROFILE</a>
-    <a href="Link_collection.html">リンク集</a>
-
-
-    <p class="menu_title">アクセスカウンタ</p>
-    <div class="counter" id="counter">
-      <span>000000</span>
-    </div>
-    <p class="menu_title">キリ番はBBSまたは拍手にて報告ください</p>
-
-    <p class="menu_title">管理者用</p>
-    <div id="admin-login-area">
-      <input type="text" id="admin-user" placeholder="USER" class="admin-input"><br>
-      <input type="password" id="admin-pass" placeholder="PASS" class="admin-input"><br>
-      <button id="admin-login-btn">LOGIN</button>
-      <div id="admin-msg" class="admin-msg-small"></div>
-    </div>
-    <div id="admin-logout-area" class="hidden">
-      <p class="admin-login-status">管理者ログイン中</p>
-      <a href="admin_claps.html" class="admin-manage-link">拍手メッセージ管理</a><a href="admin_manage.html" class="admin-manage-link">IP制限管理</a>
-      <button id="admin-logout-btn">LOGOUT</button>
-    </div>
-
-    <!-- Web拍手ボタン -->
-    <div class="clap-btn-container">
-      <span id="clap-count" class="clap-count-display">0 拍手</span>
-      <a href="javascript:void(0)" class="clap-btn" id="open-clap-modal">拍手</a>
-    </div>
-  </div>
+  <div id="sidebar-placeholder"></div>
 
   <!-- メイン本文 -->
   <div class="main_content">
@@ -59,7 +27,7 @@
       <h3>◆ お知らせ・更新履歴</h3>
 
       <p>ここにサイトの更新履歴などを記載していきます</p>
-      
+
       <!-- 管理者用新規投稿フォーム (ログイン時のみ表示) -->
       <div id="news-post-area" class="news-post-area">
         <p class="news-post-label">新規お知らせ投稿:</p>
@@ -76,7 +44,7 @@
     <!-- 近況報告欄 -->
     <div id="status-section" class="news-section">
       <h3>◆ 最近の近況</h3>
-      
+
       <!-- 管理者用新規投稿フォーム (ログイン時のみ表示) -->
       <div id="status-post-area" class="news-post-area">
         <p class="news-post-label">新規近況投稿:</p>
@@ -91,11 +59,11 @@
     </div>
   </div>
 
-</div>
+  </div>
 
-<!-- 拍手用モーダル -->
-<div id="clap-overlay"></div>
-<div id="clap-modal">
+  <!-- 拍手用モーダル -->
+  <div id="clap-overlay"></div>
+  <div id="clap-modal">
   <h3>👏 拍手</h3>
   <p class="clap-modal-desc">管理人に一言メッセージをどうぞ！<br>(拍手だけでもOKです)</p>
   <textarea id="clap-message" class="clap-textarea"></textarea>
@@ -103,9 +71,10 @@
     <button id="send-clap" class="flex-1 mr-5">送信</button>
     <button id="close-clap-modal" class="flex-1">閉じる</button>
   </div>
-</div>
+  </div>
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="js/top.js"></script>
-</body>
-</html>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script src="js/top.js"></script>
+  </body>
+  </html>
