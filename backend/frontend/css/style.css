@@ -361,16 +361,17 @@ canvas {
 
 #brush-cursor {
   position: absolute;
-  pointer-events: none; /* キャンバスの操作を邪魔しない */
+  pointer-events: none; /* マウスイベントを貫通させる */
   display: none; /* 初期は非表示 */
   box-sizing: border-box;
   background-image: url('../images/cursor.gif');
-  background-size: contain;
+  background-size: cover;
   background-repeat: no-repeat;
   background-position: center;
-  z-index: 10;
-  width: 24px; /* 初期サイズ（JSでも更新されますが） */
-  height: 24px;
+  z-index: 999; /* 最前面に表示 */
+  /* デフォルトサイズを確保 */
+  min-width: 10px;
+  min-height: 10px;
 }
 
 .tool-btn.active {

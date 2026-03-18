@@ -52,11 +52,11 @@ canvas.addEventListener('mousemove', (e) => {
   const y = e.clientY - rect.top;
 
   // ブラシカーソルの更新
-  const size = brushSize.value;
+  const size = parseInt(brushSize.value);
   brushCursor.style.display = 'block';
-  // マウス位置を中心に持ってくるためのオフセット
-  brushCursor.style.left = `${e.clientX - size / 2}px`;
-  brushCursor.style.top = `${e.clientY - size / 2}px`;
+  // キャンバス内の相対座標 (x, y) を使用して位置を合わせる
+  brushCursor.style.left = `${x - size / 2}px`;
+  brushCursor.style.top = `${y - size / 2}px`;
   brushCursor.style.width = `${size}px`;
   brushCursor.style.height = `${size}px`;
 
