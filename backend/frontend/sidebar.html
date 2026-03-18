@@ -32,3 +32,15 @@
     <a href="javascript:void(0)" class="clap-btn" id="open-clap-modal">拍手</a>
   </div>
 </div>
+
+<!-- 拍手用モーダル (ユニット化) -->
+<div id="clap-overlay"></div>
+<div id="clap-modal">
+  <h3>👏 拍手</h3>
+  <p class="clap-modal-desc">管理人に一言メッセージをどうぞ！<br>(拍手だけでもOKです)</p>
+  <textarea id="clap-message" class="clap-textarea"></textarea>
+  <div class="flex-between">
+    <button id="send-clap" class="flex-1 mr-5">送信</button>
+    <button id="close-clap-modal" class="flex-1">閉じる</button>
+  </div>
+</div>
