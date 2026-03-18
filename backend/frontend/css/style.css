@@ -362,13 +362,15 @@ canvas {
 #brush-cursor {
   position: absolute;
   pointer-events: none; /* キャンバスの操作を邪魔しない */
-  border: 1px solid #000;
-  border-radius: 50%;
   display: none; /* 初期は非表示 */
   box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.3);
-  mix-blend-mode: difference; /* 背景色に関わらず見えやすくする */
+  background-image: url('../images/cursor.gif');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
   z-index: 10;
+  width: 24px; /* 初期サイズ（JSでも更新されますが） */
+  height: 24px;
 }
 
 .tool-btn.active {
