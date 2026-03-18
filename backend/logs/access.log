@@ -1,0 +1,4 @@
+[2026-03-18T02:21:11.426Z] GET /api/counter - IP: ::1 - UA: curl/8.5.0
+[2026-03-18T02:21:40.470Z] GET /api/posts - IP: ::1 - UA: curl/8.5.0
+[2026-03-18T02:21:40.481Z] GET /api/blog - IP: ::1 - UA: curl/8.5.0
+[2026-03-18T02:24:22.951Z] POST /api/counter/increment - IP: ::1 - UA: curl/8.5.0
