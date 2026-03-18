@@ -52,11 +52,13 @@ canvas.addEventListener('mousemove', (e) => {
   const y = e.clientY - rect.top;
 
   // ブラシカーソルの更新
-  brushCursor.style.left = `${e.clientX}px`;
-  brushCursor.style.top = `${e.clientY}px`;
-  brushCursor.style.width = `${brushSize.value}px`;
-  brushCursor.style.height = `${brushSize.value}px`;
-  brushCursor.style.backgroundColor = colorPicker.value;
+  const size = parseInt(brushSize.value);
+  brushCursor.style.display = 'block';
+  // キャンバス内の相対座標 (x, y) を使用して位置を合わせる
+  brushCursor.style.left = `${x - size / 2}px`;
+  brushCursor.style.top = `${y - size / 2}px`;
+  brushCursor.style.width = `${size}px`;
+  brushCursor.style.height = `${size}px`;
 
   if (!drawing || currentTool === 'fill') return;
 
@@ -94,6 +96,10 @@ canvas.addEventListener('mousemove', (e) => {
       ctx.strokeRect(startX, startY, x - startX, y - startY);
     }
   }
+});
+
+canvas.addEventListener('mouseleave', () => {
+  brushCursor.style.display = 'none';
 });
 
 canvas.addEventListener('mouseup', (e) => {
