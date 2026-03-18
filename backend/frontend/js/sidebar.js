@@ -2,19 +2,25 @@
  * 共通サイドバーの制御スクリプト
  */
 
-let sidebarCsrfToken = "";
+window.csrfToken = ""; // グローバルに共有
 
-async function fetchSidebarCsrfToken() {
+async function fetchCsrfToken() {
+  // すでに取得中の場合は少し待つか、既存のものを返す（簡易的な二重取得防止）
+  if (window.csrfToken) return window.csrfToken;
+
   try {
     const res = await fetch("/api/csrf-token");
     const data = await res.json();
-    sidebarCsrfToken = data.csrfToken;
-    return sidebarCsrfToken;
+    window.csrfToken = data.csrfToken;
+    return window.csrfToken;
   } catch (err) {
     console.error("Failed to fetch CSRF token:", err);
     return "";
   }
 }
+
+// 他のJSからも呼び出せるように公開
+window.getSharedCsrfToken = fetchCsrfToken;
 
 function getDeviceId() {
   let deviceId = localStorage.getItem("device_id");
@@ -53,8 +59,8 @@ async function initSidebarFeatures() {
   initClapEvents();
   updateClapCountDisplay();
   
-  // CSRFトークンを事前に取得
-  await fetchSidebarCsrfToken();
+  // CSRFトークンをここで1回だけ取得
+  await fetchCsrfToken();
 }
 
 // 管理者UIの更新
@@ -96,14 +102,14 @@ async function adminLogin() {
     msgArea.innerText = "認証中...";
   }
 
-  if (!sidebarCsrfToken) await fetchSidebarCsrfToken();
+  const token = await fetchCsrfToken();
 
   try {
     const res = await fetch("/api/admin/login", {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
-        "X-CSRF-Token": sidebarCsrfToken
+        "X-CSRF-Token": token
       },
       body: JSON.stringify({ username, password })
     });
@@ -122,7 +128,8 @@ async function adminLogin() {
         msgArea.innerText = "NG";
       }
       localStorage.removeItem("admin_token");
-      await fetchSidebarCsrfToken();
+      window.csrfToken = ""; // エラー時はトークンをクリアして再取得を促す
+      await fetchCsrfToken();
     }
   } catch (err) {
     if (msgArea) msgArea.innerText = "ERR";
