@@ -367,6 +367,16 @@ async function fetchPublicClaps() {
 // ページ読み込み完了時に実行
 document.addEventListener('DOMContentLoaded', async () => {
   await fetchCsrfToken();
+  
+  // 管理者用投稿エリアの表示制御
+  const adminToken = localStorage.getItem("admin_token");
+  if (adminToken && adminToken !== "undefined") {
+    const newsPostArea = document.getElementById("news-post-area");
+    const statusPostArea = document.getElementById("status-post-area");
+    if (newsPostArea) newsPostArea.style.display = "block";
+    if (statusPostArea) statusPostArea.style.display = "block";
+  }
+
   fetchNews();
   initNewsPosting();
   initNewsEvents();
