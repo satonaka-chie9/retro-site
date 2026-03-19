@@ -1,13 +1,9 @@
-let csrfToken = "";
-
+// 共通のCSRFトークンを使用
 async function fetchCsrfToken() {
-  try {
-    const res = await fetch("/api/csrf-token");
-    const data = await res.json();
-    csrfToken = data.csrfToken;
-  } catch (err) {
-    console.error("Failed to fetch CSRF token:", err);
+  if (window.getSharedCsrfToken) {
+    return await window.getSharedCsrfToken();
   }
+  return "";
 }
 
 function formatDate(dateInput) {
@@ -118,14 +114,14 @@ function initNewsPosting() {
   postBtn.onclick = async () => {
     const content = inputEl.value;
     if (!content) return;
-    if (!csrfToken) await fetchCsrfToken();
+    if (!window.csrfToken) await fetchCsrfToken();
 
     try {
       const res = await fetch("/api/news", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "X-CSRF-Token": csrfToken,
+          "X-CSRF-Token": window.csrfToken,
           "X-Admin-Token": getAdminToken()
         },
         body: JSON.stringify({ content })
@@ -166,14 +162,14 @@ window.saveEditNews = async (id) => {
   const inputEl = document.getElementById(`news-edit-input-${id}`);
   const content = inputEl.value;
   const adminToken = localStorage.getItem("admin_token") || "";
-  if (!csrfToken) await fetchCsrfToken();
+  if (!window.csrfToken) await fetchCsrfToken();
 
   try {
     const res = await fetch(`/api/news/${id}`, {
       method: "PUT",
       headers: { 
         "Content-Type": "application/json",
-        "X-CSRF-Token": csrfToken,
+        "X-CSRF-Token": window.csrfToken,
         "X-Admin-Token": adminToken
       },
       body: JSON.stringify({ content })
@@ -194,13 +190,13 @@ window.saveEditNews = async (id) => {
 window.deleteNews = async (id) => {
   if (!confirm("この記事を削除しますか？")) return;
   const adminToken = localStorage.getItem("admin_token") || "";
-  if (!csrfToken) await fetchCsrfToken();
+  if (!window.csrfToken) await fetchCsrfToken();
 
   try {
     const res = await fetch(`/api/news/${id}`, {
       method: "DELETE",
       headers: { 
-        "X-CSRF-Token": csrfToken,
+        "X-CSRF-Token": window.csrfToken,
         "X-Admin-Token": adminToken
       }
     });
@@ -265,14 +261,14 @@ function initStatusPosting() {
   postBtn.onclick = async () => {
     const content = inputEl.value;
     if (!content) return;
-    if (!csrfToken) await fetchCsrfToken();
+    if (!window.csrfToken) await fetchCsrfToken();
 
     try {
       const res = await fetch("/api/statuses", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "X-CSRF-Token": csrfToken,
+          "X-CSRF-Token": window.csrfToken,
           "X-Admin-Token": getAdminToken()
         },
         body: JSON.stringify({ content })
@@ -295,13 +291,13 @@ function initStatusPosting() {
 window.deleteStatus = async (id) => {
   if (!confirm("この近況を削除しますか？")) return;
   const adminToken = localStorage.getItem("admin_token") || "";
-  if (!csrfToken) await fetchCsrfToken();
+  if (!window.csrfToken) await fetchCsrfToken();
 
   try {
     const res = await fetch(`/api/statuses/${id}`, {
       method: "DELETE",
       headers: { 
-        "X-CSRF-Token": csrfToken,
+        "X-CSRF-Token": window.csrfToken,
         "X-Admin-Token": adminToken
       }
     });

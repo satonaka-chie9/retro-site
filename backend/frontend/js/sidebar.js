@@ -5,13 +5,12 @@
 window.csrfToken = ""; // グローバルに共有
 
 async function fetchCsrfToken() {
-  // すでに取得中の場合は少し待つか、既存のものを返す（簡易的な二重取得防止）
-  if (window.csrfToken) return window.csrfToken;
-
   try {
     const res = await fetch("/api/csrf-token");
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const data = await res.json();
     window.csrfToken = data.csrfToken;
+    console.log("CSRF token updated");
     return window.csrfToken;
   } catch (err) {
     console.error("Failed to fetch CSRF token:", err);
@@ -102,7 +101,11 @@ async function adminLogin() {
     msgArea.innerText = "認証中...";
   }
 
-  const token = await fetchCsrfToken();
+  // トークンがなければ取得
+  if (!window.csrfToken) {
+    await fetchCsrfToken();
+  }
+  const token = window.csrfToken;
 
   try {
     const res = await fetch("/api/admin/login", {
@@ -125,10 +128,11 @@ async function adminLogin() {
     } else {
       if (msgArea) {
         msgArea.style.color = "#FF0000";
-        msgArea.innerText = "NG";
+        msgArea.innerText = data.error || "NG";
       }
       localStorage.removeItem("admin_token");
-      window.csrfToken = ""; // エラー時はトークンをクリアして再取得を促す
+      // エラー時はトークンをクリアして再取得を促す
+      window.csrfToken = "";
       await fetchCsrfToken();
     }
   } catch (err) {
