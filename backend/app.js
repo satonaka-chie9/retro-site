@@ -1,4 +1,5 @@
 const express = require("express");
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const http = require("http");
 const { Server } = require("socket.io");
 const helmet = require("helmet");

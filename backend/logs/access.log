@@ -36,3 +36,7 @@
 [2026-03-18T04:50:08.658Z] GET /api/csrf-token - IP: ::1 - UA: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36
 [2026-03-18T04:50:08.673Z] GET /images/cursor.gif - IP: ::1 - UA: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36
 [2026-03-18T04:50:08.681Z] GET /api/counter - IP: ::1 - UA: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36
+[2026-03-19T01:59:44.842Z] GET /api/csrf-token - IP: ::1 - UA: curl/8.5.0
+[2026-03-19T02:00:15.194Z] POST /api/admin/login - IP: ::1 - UA: curl/8.5.0
+[2026-03-19T02:02:34.673Z] GET /api/csrf-token - IP: ::1 - UA: curl/8.5.0
+[2026-03-19T02:02:48.930Z] POST /api/admin/login - IP: ::1 - UA: curl/8.5.0
