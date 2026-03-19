@@ -1,4 +1,6 @@
 const express = require("express");
+const path = require("path");
+require('dotenv').config({ path: path.join(process.cwd(), '../.env') });
 const http = require("http");
 const { Server } = require("socket.io");
 const helmet = require("helmet");
@@ -76,19 +78,26 @@ const csrfProtection = (req, res, next) => {
   }
   const csrfTokenFromHeader = req.headers["x-csrf-token"];
   const csrfTokenFromCookie = req.signedCookies["_csrf"];
+  
   if (!csrfTokenFromHeader || !csrfTokenFromCookie || csrfTokenFromHeader !== csrfTokenFromCookie) {
-    return res.status(403).json({ error: "不正なリクエストです (CSRF)" });
+    console.warn(`[CSRF] Rejected:
+      Header: ${csrfTokenFromHeader ? "present" : "missing"}
+      Cookie: ${csrfTokenFromCookie ? "present" : "missing"}
+      Equal: ${csrfTokenFromHeader === csrfTokenFromCookie}`);
+    return res.status(403).json({ error: "CSRF token mismatch or missing." });
   }
   next();
 };
 
 app.get("/api/csrf-token", (req, res) => {
   const token = crypto.randomBytes(32).toString("hex");
+  const isProduction = process.env.NODE_ENV === "production";
+  
   res.cookie("_csrf", token, {
     httpOnly: true,
     signed: true,
-    sameSite: "strict",
-    secure: process.env.NODE_ENV === "production"
+    sameSite: isProduction ? "none" : "lax", // Renderなどのクロスドメイン/プロキシ環境を考慮
+    secure: isProduction || req.protocol === "https"
   });
   res.json({ csrfToken: token });
 });
@@ -284,7 +293,6 @@ app.delete("/api/statuses/:id", csrfProtection, adminOnly, (req, res) => {
 });
 
 // 静的ファイルの提供
-const path = require("path");
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, "uploads");
 app.use(express.static(path.join(__dirname, "frontend")));
 app.use("/uploads", express.static(UPLOAD_DIR));
