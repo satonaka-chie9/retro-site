@@ -1,6 +1,11 @@
 # Terminal-style-retro-site 📟
 
 ![Label](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white)
+![Label](https://img.shields.io/badge/-Docker-EEE.svg?logo=docker&style=flat)
+![Label](https://img.shields.io/badge/-Nginx-bfcfcf.svg?logo=nginx&style=flat)
+![Label](https://img.shields.io/badge/-PostgreSQL-336791.svg?logo=postgresql&style=flat)
+![Label](https://img.shields.io/badge/Javascript-276DC3.svg?logo=javascript&style=flat)
+![Label](https://img.shields.io/badge/-CSS3-1572B6.svg?logo=css3&style=flat)
 
 黒背景に緑文字。90年代後半から2000年代初頭のインターネットを彷彿とさせる、ターミナル風デザインの多機能レトロサイトです。
 
