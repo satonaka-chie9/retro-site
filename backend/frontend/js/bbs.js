@@ -70,7 +70,27 @@ async function loadPosts() {
         ${isAdmin ? `<span class="post-ip" style="color: #888; font-size: 0.8em; margin-left: 5px;">[IP: ${post.ip || "unknown"}]</span>` : ""}
         <span class="post-date"></span> <span class="post-edited"></span>
       </div>
-      <pre class="post_body"></pre>
+      <div class="post_content_area">
+        <pre class="post_body"></pre>
+      </div>
+      
+      <!-- インライン編集フォーム -->
+      <div class="inline-form hidden edit-form-area">
+        <p style="margin: 0 0 5px 0; font-size: 11px;">編集内容を入力してください：</p>
+        <textarea class="edit-textarea" style="width: 95%; height: 80px;"></textarea>
+        <div style="margin-top: 5px;">
+          <button class="save-edit-btn">保存</button>
+          <button class="cancel-edit-btn">キャンセル</button>
+        </div>
+      </div>
+
+      <!-- インライン削除確認 -->
+      <div class="inline-confirm hidden delete-confirm-area">
+        <span class="confirm-msg">この投稿を削除しますか？</span>
+        <button class="confirm-delete-btn">はい、削除します</button>
+        <button class="cancel-delete-btn">いいえ</button>
+      </div>
+
       <div class="post_footer">
         ${(isOwner || isAdmin) ? `
           <button class="edit-btn">編集</button>
@@ -87,17 +107,47 @@ async function loadPosts() {
 
     const editBtn = div.querySelector(".edit-btn");
     const delBtn = div.querySelector(".delete-btn");
+    const editArea = div.querySelector(".edit-form-area");
+    const delArea = div.querySelector(".delete-confirm-area");
+    const contentArea = div.querySelector(".post_content_area");
+    const footerArea = div.querySelector(".post_footer");
 
     if (editBtn) {
       editBtn.addEventListener("click", () => {
-        editPost(post.id, post.name, post.content);
+        const textarea = div.querySelector(".edit-textarea");
+        textarea.value = post.content;
+        editArea.classList.remove("hidden");
+        contentArea.classList.add("hidden");
+        footerArea.classList.add("hidden");
       });
     }
+
+    div.querySelector(".save-edit-btn")?.addEventListener("click", async () => {
+      const newContent = div.querySelector(".edit-textarea").value;
+      await performEditPost(post.id, post.name, newContent);
+    });
+
+    div.querySelector(".cancel-edit-btn")?.addEventListener("click", () => {
+      editArea.classList.add("hidden");
+      contentArea.classList.remove("hidden");
+      footerArea.classList.remove("hidden");
+    });
+
     if (delBtn) {
       delBtn.addEventListener("click", () => {
-        deletePost(post.id);
+        delArea.classList.remove("hidden");
+        footerArea.classList.add("hidden");
       });
     }
+
+    div.querySelector(".confirm-delete-btn")?.addEventListener("click", async () => {
+      await performDeletePost(post.id);
+    });
+
+    div.querySelector(".cancel-delete-btn")?.addEventListener("click", () => {
+      delArea.classList.add("hidden");
+      footerArea.classList.remove("hidden");
+    });
 
     container.appendChild(div);
   });
@@ -160,8 +210,8 @@ if (postForm) {
   });
 }
 
-async function editPost(id, currentName, currentContent) {
-  const newContent = prompt("内容を編集", currentContent);
+// 実際の編集処理
+async function performEditPost(id, currentName, newContent) {
   if (!newContent) return;
   
   let token = window.csrfToken;
@@ -191,9 +241,8 @@ async function editPost(id, currentName, currentContent) {
   }
 }
 
-async function deletePost(id) {
-  if (!confirm("本当に削除しますか？")) return;
-  
+// 実際の削除処理
+async function performDeletePost(id) {
   let token = window.csrfToken;
   if (!token && typeof window.getSharedCsrfToken === "function") {
     token = await window.getSharedCsrfToken();

@@ -89,6 +89,32 @@ router.post("/", adminOnly, upload.single("image"), async (req, res) => {
   );
 });
 
+// ブログ更新
+router.put("/:id", adminOnly, (req, res) => {
+  const { id } = req.params;
+  let { title, content } = req.body;
+
+  if (!title || !content) {
+    return res.status(400).json({ error: "タイトルと本文は必須です" });
+  }
+
+  title = escapeHTML(title);
+  content = escapeHTML(content);
+
+  db.run(
+    "UPDATE articles SET title = ?, content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+    [title, content, id],
+    function(err) {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({ error: "サーバーエラー" });
+      }
+      logger.logAction("UPDATE", "blog", id);
+      res.json({ success: true });
+    }
+  );
+});
+
 // ブログ削除
 router.delete("/:id", adminOnly, (req, res) => {
   const { id } = req.params;

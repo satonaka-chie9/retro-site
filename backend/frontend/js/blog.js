@@ -73,13 +73,35 @@ async function loadBlogs() {
           <span class="blog-title"></span>
           <span class="blog-date" style="font-size: 0.7em; color: #ccc; font-weight: normal;"></span>
         </div>
-        <div class="post_body">
+        <div class="post_body blog-content-area">
           <div class="blog-image-container"></div>
           <p class="blog-content" style="white-space: pre-wrap;"></p>
         </div>
+
+        <!-- インライン編集フォーム -->
+        <div class="inline-form hidden blog-edit-area">
+          <p style="margin: 0 0 5px 0; font-size: 11px;">記事の編集：</p>
+          <div>タイトル：<input type="text" class="edit-blog-title" style="width: 80%;"></div>
+          <div style="margin-top: 5px;">本文：<br>
+            <textarea class="edit-blog-content" style="width: 95%; height: 150px;"></textarea>
+          </div>
+          <div style="margin-top: 5px;">
+            <button class="save-blog-btn">保存</button>
+            <button class="cancel-blog-btn">キャンセル</button>
+          </div>
+        </div>
+
+        <!-- インライン削除確認 -->
+        <div class="inline-confirm hidden blog-delete-confirm-area">
+          <span class="confirm-msg">この記事を削除しますか？</span>
+          <button class="confirm-delete-btn">はい、削除します</button>
+          <button class="cancel-delete-btn">いいえ</button>
+        </div>
+
         ${isAdmin ? `
-          <div style="margin-top: 10px;">
-            <button class="blog-delete-btn" data-id="${blog.id}" style="font-size: 10px;">削除</button>
+          <div class="blog-footer" style="margin-top: 10px;">
+            <button class="blog-edit-btn" style="font-size: 10px;">編集</button>
+            <button class="blog-delete-btn" style="font-size: 10px;">削除</button>
           </div>
         ` : ""}
       `;
@@ -97,6 +119,48 @@ async function loadBlogs() {
         div.querySelector(".blog-image-container").appendChild(img);
       }
 
+      // イベントリスナーの設置
+      if (isAdmin) {
+        const editArea = div.querySelector(".blog-edit-area");
+        const deleteArea = div.querySelector(".blog-delete-confirm-area");
+        const contentArea = div.querySelector(".blog-content-area");
+        const footerArea = div.querySelector(".blog-footer");
+
+        div.querySelector(".blog-edit-btn").onclick = () => {
+          div.querySelector(".edit-blog-title").value = blog.title;
+          div.querySelector(".edit-blog-content").value = blog.content;
+          editArea.classList.remove("hidden");
+          contentArea.classList.add("hidden");
+          footerArea.classList.add("hidden");
+        };
+
+        div.querySelector(".save-blog-btn").onclick = () => {
+          const title = div.querySelector(".edit-blog-title").value;
+          const content = div.querySelector(".edit-blog-content").value;
+          saveEditBlog(blog.id, title, content);
+        };
+
+        div.querySelector(".cancel-blog-btn").onclick = () => {
+          editArea.classList.add("hidden");
+          contentArea.classList.remove("hidden");
+          footerArea.classList.remove("hidden");
+        };
+
+        div.querySelector(".blog-delete-btn").onclick = () => {
+          deleteArea.classList.remove("hidden");
+          footerArea.classList.add("hidden");
+        };
+
+        div.querySelector(".confirm-delete-btn").onclick = () => {
+          performDeleteBlog(blog.id);
+        };
+
+        div.querySelector(".cancel-delete-btn").onclick = () => {
+          deleteArea.classList.add("hidden");
+          footerArea.classList.remove("hidden");
+        };
+      }
+
       container.appendChild(div);
     });
   } catch (err) {
@@ -104,19 +168,31 @@ async function loadBlogs() {
   }
 }
 
-function initBlogEvents() {
-  const container = document.getElementById("blog_container");
-  if (!container) return;
-  container.addEventListener("click", (e) => {
-    if (e.target.classList.contains("blog-delete-btn")) {
-      const id = e.target.dataset.id;
-      deleteBlog(id);
+async function saveEditBlog(id, title, content) {
+  if (!csrfToken) await fetchCsrfToken();
+  try {
+    const res = await fetch(`/api/blog/${id}`, {
+      method: "PUT",
+      headers: { 
+        "Content-Type": "application/json",
+        "X-Admin-Token": getAdminToken(),
+        "X-CSRF-Token": csrfToken
+      },
+      body: JSON.stringify({ title, content })
+    });
+    if (res.ok) {
+      loadBlogs();
+    } else {
+      const data = await res.json();
+      alert(data.error || "更新に失敗しました");
+      await fetchCsrfToken();
     }
-  });
+  } catch (err) {
+    alert("エラーが発生しました");
+  }
 }
 
-async function deleteBlog(id) {
-  if (!confirm("本当にこの記事を削除しますか？")) return;
+async function performDeleteBlog(id) {
   if (!csrfToken) await fetchCsrfToken();
   try {
     const res = await fetch(`/api/blog/${id}`, {
@@ -182,5 +258,4 @@ if (blogForm) {
 document.addEventListener("DOMContentLoaded", async () => {
   await fetchCsrfToken();
   loadBlogs();
-  initBlogEvents();
 });

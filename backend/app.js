@@ -284,6 +284,19 @@ app.post("/api/statuses", csrfProtection, adminOnly, (req, res) => {
   });
 });
 
+app.put("/api/statuses/:id", csrfProtection, adminOnly, (req, res) => {
+  const { id } = req.params;
+  let { content } = req.body;
+  if (!content) return res.status(400).json({ error: "内容が空です" });
+
+  content = escapeHTML(content);
+  db.run("UPDATE statuses SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [content, id], (err) => {
+    if (err) return res.status(500).json({ error: "サーバーエラー" });
+    logger.logAction("UPDATE", "status", id);
+    res.json({ success: true });
+  });
+});
+
 app.delete("/api/statuses/:id", csrfProtection, adminOnly, (req, res) => {
   const { id } = req.params;
   db.run("DELETE FROM statuses WHERE id = ?", [id], function(err) {

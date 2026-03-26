@@ -57,7 +57,7 @@ async function fetchNews() {
         <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px;">
           <span style="font-size: 0.8em; color: #888;" class="news-date-display"></span>
           ${isAdmin ? `
-            <div style="font-size: 11px;">
+            <div style="font-size: 11px;" class="news-controls-${item.id}">
               <button class="news-btn" data-id="${item.id}" data-action="edit">編集</button>
               <button class="news-btn" data-id="${item.id}" data-action="delete">削除</button>
             </div>
@@ -71,6 +71,13 @@ async function fetchNews() {
             <button class="news-btn" data-id="${item.id}" data-action="save">保存</button>
             <button class="news-btn" data-id="${item.id}" data-action="cancel">キャンセル</button>
           </div>
+        </div>
+
+        <!-- インライン削除確認 -->
+        <div class="inline-confirm hidden" id="news-delete-confirm-${item.id}">
+          <span class="confirm-msg">この記事を削除しますか？</span>
+          <button class="news-btn" data-id="${item.id}" data-action="confirm-delete">はい</button>
+          <button class="news-btn" data-id="${item.id}" data-action="cancel-delete">いいえ</button>
         </div>
       `;
 
@@ -97,7 +104,9 @@ function initNewsEvents() {
     const action = btn.dataset.action;
 
     if (action === "edit") startEditNews(id);
-    else if (action === "delete") deleteNews(id);
+    else if (action === "delete") showDeleteNewsConfirm(id);
+    else if (action === "confirm-delete") performDeleteNews(id);
+    else if (action === "cancel-delete") hideDeleteNewsConfirm(id);
     else if (action === "save") saveEditNews(id);
     else if (action === "cancel") cancelEditNews(id);
   });
@@ -146,16 +155,20 @@ window.startEditNews = (id) => {
   const textEl = document.getElementById(`news-content-${id}`);
   const formEl = document.getElementById(`news-edit-form-${id}`);
   const inputEl = document.getElementById(`news-edit-input-${id}`);
+  const controlsEl = document.querySelector(`.news-controls-${id}`);
   inputEl.value = textEl.innerText;
   textEl.style.display = "none";
   formEl.style.display = "block";
+  if (controlsEl) controlsEl.style.display = "none";
 };
 
 window.cancelEditNews = (id) => {
   const textEl = document.getElementById(`news-content-${id}`);
   const formEl = document.getElementById(`news-edit-form-${id}`);
+  const controlsEl = document.querySelector(`.news-controls-${id}`);
   textEl.style.display = "block";
   formEl.style.display = "none";
+  if (controlsEl) controlsEl.style.display = "block";
 };
 
 window.saveEditNews = async (id) => {
@@ -187,8 +200,21 @@ window.saveEditNews = async (id) => {
   }
 };
 
-window.deleteNews = async (id) => {
-  if (!confirm("この記事を削除しますか？")) return;
+window.showDeleteNewsConfirm = (id) => {
+  const confirmEl = document.getElementById(`news-delete-confirm-${id}`);
+  const controlsEl = document.querySelector(`.news-controls-${id}`);
+  confirmEl.classList.remove("hidden");
+  if (controlsEl) controlsEl.style.display = "none";
+};
+
+window.hideDeleteNewsConfirm = (id) => {
+  const confirmEl = document.getElementById(`news-delete-confirm-${id}`);
+  const controlsEl = document.querySelector(`.news-controls-${id}`);
+  confirmEl.classList.add("hidden");
+  if (controlsEl) controlsEl.style.display = "block";
+};
+
+window.performDeleteNews = async (id) => {
   const adminToken = localStorage.getItem("admin_token") || "";
   if (!window.csrfToken) await fetchCsrfToken();
 
@@ -239,9 +265,30 @@ async function fetchStatuses() {
       div.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: baseline;">
           <span style="font-size: 0.8em; color: #888;">[${dateStr}]</span>
-          ${isAdmin ? `<button onclick="deleteStatus(${item.id})" style="font-size: 10px;">削除</button>` : ''}
+          ${isAdmin ? `
+            <div id="status-controls-${item.id}" style="font-size: 10px;">
+              <button onclick="startEditStatus(${item.id})" style="font-size: 10px;">編集</button>
+              <button onclick="showDeleteStatusConfirm(${item.id})" style="font-size: 10px;">削除</button>
+            </div>
+          ` : ''}
         </div>
-        <p style="margin: 5px 0; white-space: pre-wrap; font-size: 0.9em;"></p>
+        <p id="status-content-${item.id}" style="margin: 5px 0; white-space: pre-wrap; font-size: 0.9em;"></p>
+        
+        <!-- インライン編集フォーム -->
+        <div id="status-edit-form-${item.id}" class="inline-form hidden">
+          <textarea id="status-edit-input-${item.id}" style="width: 100%; height: 40px; font-size: 0.9em;"></textarea>
+          <div style="margin-top: 5px;">
+            <button onclick="saveEditStatus(${item.id})" style="font-size: 10px;">保存</button>
+            <button onclick="cancelEditStatus(${item.id})" style="font-size: 10px;">取消</button>
+          </div>
+        </div>
+
+        <!-- インライン削除確認 -->
+        <div id="status-delete-confirm-${item.id}" class="inline-confirm hidden">
+          <span class="confirm-msg" style="font-size: 11px;">削除しますか？</span>
+          <button onclick="performDeleteStatus(${item.id})" style="font-size: 10px;">はい</button>
+          <button onclick="hideDeleteStatusConfirm(${item.id})" style="font-size: 10px;">いいえ</button>
+        </div>
       `;
       div.querySelector("p").textContent = item.content;
       listEl.appendChild(div);
@@ -288,8 +335,70 @@ function initStatusPosting() {
   };
 }
 
-window.deleteStatus = async (id) => {
-  if (!confirm("この近況を削除しますか？")) return;
+window.startEditStatus = (id) => {
+  const textEl = document.getElementById(`status-content-${id}`);
+  const formEl = document.getElementById(`status-edit-form-${id}`);
+  const inputEl = document.getElementById(`status-edit-input-${id}`);
+  const controlsEl = document.getElementById(`status-controls-${id}`);
+  inputEl.value = textEl.innerText;
+  textEl.style.display = "none";
+  formEl.classList.remove("hidden");
+  if (controlsEl) controlsEl.style.display = "none";
+};
+
+window.cancelEditStatus = (id) => {
+  const textEl = document.getElementById(`status-content-${id}`);
+  const formEl = document.getElementById(`status-edit-form-${id}`);
+  const controlsEl = document.getElementById(`status-controls-${id}`);
+  textEl.style.display = "block";
+  formEl.classList.add("hidden");
+  if (controlsEl) controlsEl.style.display = "block";
+};
+
+window.saveEditStatus = async (id) => {
+  const inputEl = document.getElementById(`status-edit-input-${id}`);
+  const content = inputEl.value;
+  const adminToken = localStorage.getItem("admin_token") || "";
+  if (!window.csrfToken) await fetchCsrfToken();
+
+  try {
+    const res = await fetch(`/api/statuses/${id}`, {
+      method: "PUT",
+      headers: { 
+        "Content-Type": "application/json",
+        "X-CSRF-Token": window.csrfToken,
+        "X-Admin-Token": adminToken
+      },
+      body: JSON.stringify({ content })
+    });
+
+    if (res.ok) {
+      fetchStatuses();
+    } else {
+      const data = await res.json();
+      alert(data.error || "更新に失敗しました。");
+      await fetchCsrfToken();
+    }
+  } catch (err) {
+    alert("エラーが発生しました。");
+  }
+};
+
+window.showDeleteStatusConfirm = (id) => {
+  const confirmEl = document.getElementById(`status-delete-confirm-${id}`);
+  const controlsEl = document.getElementById(`status-controls-${id}`);
+  confirmEl.classList.remove("hidden");
+  if (controlsEl) controlsEl.style.display = "none";
+};
+
+window.hideDeleteStatusConfirm = (id) => {
+  const confirmEl = document.getElementById(`status-delete-confirm-${id}`);
+  const controlsEl = document.getElementById(`status-controls-${id}`);
+  confirmEl.classList.add("hidden");
+  if (controlsEl) controlsEl.style.display = "block";
+};
+
+window.performDeleteStatus = async (id) => {
   const adminToken = localStorage.getItem("admin_token") || "";
   if (!window.csrfToken) await fetchCsrfToken();
 
