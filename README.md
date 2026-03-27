@@ -17,7 +17,7 @@
 
 
 
-## 🌟 特徴
+## 特徴
 - **ターミナルUI**: 全てのページが黒背景・緑文字のレトロな雰囲気。
 - **多機能掲示板 (BBS)**: CRUD機能を完備し、編集済みマークの表示にも対応。
 - **リアルタイムチャット (Etchat)**: Socket.ioを使用したリアルタイムなコミュニケーション。
@@ -42,7 +42,7 @@
 - Docker / Docker Compose
 - Render (Blueprint 対応)
 
-## 📂 ディレクトリ構成
+## ディレクトリ構成
 ```text
 .
 ├── backend/            # Expressサーバー, API, WebSocket
@@ -56,7 +56,7 @@
 └── README.md           # このファイル
 ```
 
-## 🚀 はじめかた
+## はじめかた
 
 ### 1. ローカルでの実行 (Docker Compose)
 最も簡単な開始方法です。
@@ -78,6 +78,27 @@ docker-compose up --build
 | `ADMIN_PASSWORD` | 管理画面へのログインパスワード | (任意) |
 | `DATABASE_URL` | Supabaseなどの接続文字列 | (未指定時はSQLite) |
 
+### 3. Render でのデプロイ (Blueprint 対応)
+本プロジェクトは `render.yaml` を含んでいるため、Render の **Blueprint** 機能を利用して簡単にデプロイできます。
+
+1.  GitHub にリポジトリをプッシュします。
+2.  [Render Dashboard](https://dashboard.render.com/) にログインし、**"New"** > **"Blueprint"** を選択します。
+3.  リポジトリを選択し、`render.yaml` の設定を確認します。
+4.  **"Apply"** をクリックすると、以下のリソースが自動的に作成されます：
+    *   **Web Service**: Docker ランタイムで動作する本体
+    *   **Disk**: SQLite データベースを永続化するための 1GB のストレージ
+5.  デプロイ完了後、Web Service の **"Environment"** 設定から、必要に応じて `ADMIN_PASSWORD` などの環境変数を追加してください。
+
+※ 無料プラン（Free Plan）でも動作しますが、Disk 機能を使用するため、Render の有料インスタンス（Starter 以上）が必要になる場合があります。
+
+#### 無料プランで永続化させたい場合 (Supabase の利用)
+Render の無料プランで Disk を使用せずにデータを永続化するには、外部データベース（Supabase など）を利用します。
+
+1.  [Supabase](https://supabase.com/) でプロジェクトを作成し、**Project Settings > Database** から **Connection String (Transaction mode または Session mode)** の URL を取得します。
+2.  Render の Web Service 設定画面の **"Environment"** セクションで、以下の環境変数を追加します：
+    *   `DATABASE_URL`: Supabase から取得した接続文字列
+3.  `DATABASE_URL` が設定されると、アプリは自動的に SQLite から PostgreSQL (Supabase) モードに切り替わり、データが永続化されます。
+
 ## 🛡 セキュリティと工夫
 - **データ永続化**: Dockerボリュームマウントにより、再起動後もデータを保持。
 - **バリデーション**: `express-validator` による入力値チェック。
@@ -85,5 +106,5 @@ docker-compose up --build
 - **連投防止**: `express-rate-limit` によるAPI制限。
 - **レスポンシブ**: レトロな外観を保ちつつ、ブラウザサイズに合わせた表示。
 
-## 📝 ライセンス
+## ライセンス
 This project is open-sourced under the MIT License.

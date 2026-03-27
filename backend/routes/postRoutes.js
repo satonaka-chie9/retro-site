@@ -124,8 +124,24 @@ router.post("/", postLimiter, checkIPBan, postValidation, validate, async (req, 
           console.error(err);
           return res.status(500).json({ error: "サーバー内部エラーが発生しました" });
         }
+
+        // ぬるぽチェック
+        if (content && content.includes("ぬるぽ")) {
+          db.run(
+            "INSERT INTO posts (name, content, device_id, ip) VALUES (?, ?, ?, ?)",
+            ["null_bot", "ガッ", "bot_id", "127.0.0.1"],
+            function (botErr) {
+              if (botErr) {
+                console.error("Bot response failed:", botErr);
+              }
+              if (req.io) req.io.emit("post_update");
+            }
+          );
+        } else {
+          if (req.io) req.io.emit("post_update");
+        }
+
         // 実際に使用された名前を返す
-        if (req.io) req.io.emit("post_update");
         res.json({ success: true, used_name: resolvedName });
       }
     );
