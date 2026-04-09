@@ -1,5 +1,7 @@
 const API_BASE = "";
 
+// デバイスIDをローカルストレージに保存して管理する関数。初回アクセス時にUUIDを生成し、以降は同じIDを使用します。
+//これにより、ユーザーが同じブラウザから投稿した内容を識別できるようになり、各ユーザーが自分の投稿を編集・削除できるようになります。
 function getDeviceId() {
   let deviceId = localStorage.getItem("device_id");
   if (!deviceId) {
@@ -9,11 +11,14 @@ function getDeviceId() {
   return deviceId;
 }
 
+// 管理者トークンをローカルストレージから取得する関数。トークンが存在しない場合は空文字を返します。
 function getAdminToken() {
   const token = localStorage.getItem("admin_token");
   return (token && token !== "undefined") ? token : "";
 }
 
+// 管理者トークンをローカルストレージに保存する関数。ログイン成功時に呼び出されます。
+//これにより、管理者はログイン状態を維持でき、ページをリロードしても再度ログインする必要がなくなります。
 function formatDate(dateInput) {
   if (!dateInput) return "";
   let date;
@@ -28,6 +33,7 @@ function formatDate(dateInput) {
   } else {
     date = new Date(dateInput);
   }
+  // 無効な日付の場合のフォールバック
   if (isNaN(date.getTime())) return "日付不明";
   const formatter = new Intl.DateTimeFormat("ja-JP", {
     timeZone: "Asia/Tokyo",
@@ -40,30 +46,39 @@ function formatDate(dateInput) {
   return `${p.year}/${p.month}/${p.day} ${p.hour}:${p.minute}:${p.second}`;
 }
 
+// 管理者用の統計と拍手メッセージを取得して表示する関数。ここでは、APIから統計情報を取得し、HTMLに整形して表示します。
 async function loadPosts() {
   const res = await fetch(API_BASE + "/api/posts");
   const data = await res.json();
 
+
+  // 取得した投稿データをループしてHTML要素を生成し、ページに表示します。各投稿には編集・削除ボタンがあり、ユーザーは自分の投稿を管理できます。
   const container = document.getElementById("posts_container");
   if (!container) return;
   container.innerHTML = "";
 
+  // 管理者トークンとデバイスIDを取得して、現在のユーザーが管理者かどうかを判断します。
   const adminToken = getAdminToken();
   const currentDeviceId = getDeviceId();
   const isAdmin = adminToken.length > 0;
 
+  // 取得した投稿データをループしてHTML要素を生成し、ページに表示します。各投稿には編集・削除ボタンがあり、ユーザーは自分の投稿を管理できます。
   data.forEach(post => {
     const div = document.createElement("div");
     div.className = "post";
 
+
+    // 日付のフォーマットと編集マークの表示
     const created = formatDate(post.created_at);
     let editedMark = "";
     if (post.updated_at) {
       editedMark = `（編集済: ${formatDate(post.updated_at)}）`;
     }
 
+    // 投稿の所有者か管理者であれば編集・削除ボタンを表示するためのフラグを設定します。これにより、ユーザーは自分の投稿を編集・削除でき、管理者はすべての投稿を管理できます。
     const isOwner = post.device_id === currentDeviceId;
     
+    // 投稿のHTML構造を定義します。投稿のID、名前、内容、作成日時、編集日時などを表示し、必要に応じて編集・削除ボタンを追加します。
     div.innerHTML = `
       <div class="post_header">
         No.<span class="post-id"></span> <span class="post-name"></span>
@@ -98,20 +113,24 @@ async function loadPosts() {
         ` : ''}
       </div>
     `;
+    
 
+    // 投稿の内容をHTML要素にセットします。これには、投稿のID、名前、作成日時、編集マーク、内容などが含まれます。
     div.querySelector(".post-id").textContent = post.id;
     div.querySelector(".post-name").textContent = post.name;
     div.querySelector(".post-date").textContent = created;
     div.querySelector(".post-edited").textContent = editedMark;
     div.querySelector(".post_body").textContent = post.content;
-
+    
+    // 編集・削除ボタンのイベントリスナーを設定します。編集ボタンをクリックすると、投稿内容を編集するためのフォームが表示され、削除ボタンをクリックすると、削除確認のダイアログが表示されます。
     const editBtn = div.querySelector(".edit-btn");
     const delBtn = div.querySelector(".delete-btn");
     const editArea = div.querySelector(".edit-form-area");
     const delArea = div.querySelector(".delete-confirm-area");
     const contentArea = div.querySelector(".post_content_area");
     const footerArea = div.querySelector(".post_footer");
-
+    
+    // 編集ボタンのイベントリスナーを設定します。クリックすると、投稿内容を編集するためのフォームが表示され、元の内容エリアとフッターが非表示になります。
     if (editBtn) {
       editBtn.addEventListener("click", () => {
         const textarea = div.querySelector(".edit-textarea");
@@ -122,17 +141,20 @@ async function loadPosts() {
       });
     }
 
+    // 保存ボタンのイベントリスナーを設定します。クリックすると、編集内容がサーバーに送信され、投稿が更新されます。
     div.querySelector(".save-edit-btn")?.addEventListener("click", async () => {
       const newContent = div.querySelector(".edit-textarea").value;
       await performEditPost(post.id, post.name, newContent);
     });
 
+    // キャンセルボタンのイベントリスナーを設定します。クリックすると、編集フォームが非表示になり、元の内容エリアとフッターが再表示されます。
     div.querySelector(".cancel-edit-btn")?.addEventListener("click", () => {
       editArea.classList.add("hidden");
       contentArea.classList.remove("hidden");
       footerArea.classList.remove("hidden");
     });
 
+    // 削除ボタンのイベントリスナーを設定します。クリックすると、削除確認のダイアログが表示され、元の内容エリアとフッターが非表示になります。
     if (delBtn) {
       delBtn.addEventListener("click", () => {
         delArea.classList.remove("hidden");
@@ -140,10 +162,12 @@ async function loadPosts() {
       });
     }
 
+    // 削除確認の「はい」ボタンのイベントリスナーを設定します。クリックすると、投稿がサーバーから削除されます。
     div.querySelector(".confirm-delete-btn")?.addEventListener("click", async () => {
       await performDeletePost(post.id);
     });
 
+    // 削除確認の「いいえ」ボタンのイベントリスナーを設定します。クリックすると、削除確認ダイアログが非表示になり、元の内容エリアとフッターが再表示されます。
     div.querySelector(".cancel-delete-btn")?.addEventListener("click", () => {
       delArea.classList.add("hidden");
       footerArea.classList.remove("hidden");
@@ -153,6 +177,7 @@ async function loadPosts() {
   });
 }
 
+// ユーザー名をローカルストレージから復元して入力欄にセットする関数。これにより、ユーザーは前回使用した名前を再利用できます。
 function restoreUserName() {
   const savedName = localStorage.getItem("bbs_user_name");
   if (savedName) {
@@ -163,6 +188,7 @@ function restoreUserName() {
   }
 }
 
+// 管理者トークンをローカルストレージに保存する関数。ログイン成功時に呼び出されます。これにより、管理者はログイン状態を維持でき、ページをリロードしても再度ログインする必要がなくなります。
 const postForm = document.getElementById("postForm");
 if (postForm) {
   postForm.addEventListener("submit", async (e) => {
@@ -179,6 +205,7 @@ if (postForm) {
       token = await window.getSharedCsrfToken();
     }
 
+    // 投稿内容をサーバーに送信する関数。成功した場合は投稿一覧を更新し、失敗した場合はエラーメッセージを表示します。
     const res = await fetch(API_BASE + "/api/posts", {
       method: "POST",
       headers: { 
@@ -214,11 +241,13 @@ if (postForm) {
 async function performEditPost(id, currentName, newContent) {
   if (!newContent) return;
   
+  // sidebar.jsが取得したトークンを使用。なければ取得を待つ。
   let token = window.csrfToken;
   if (!token && typeof window.getSharedCsrfToken === "function") {
     token = await window.getSharedCsrfToken();
   }
 
+  // 編集内容をサーバーに送信する関数。成功した場合は投稿一覧を更新し、失敗した場合はエラーメッセージを表示します。
   const res = await fetch(API_BASE + "/api/posts/" + id, {
     method: "PUT",
     headers: { 
@@ -248,6 +277,7 @@ async function performDeletePost(id) {
     token = await window.getSharedCsrfToken();
   }
 
+  // 削除内容をサーバーに送信する関数。成功した場合は投稿一覧を更新し、失敗した場合はエラーメッセージを表示します。
   const res = await fetch(API_BASE + "/api/posts/" + id, {
     method: "DELETE",
     headers: { 

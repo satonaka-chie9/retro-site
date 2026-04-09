@@ -1,3 +1,4 @@
+// ブログ関連のルート
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
@@ -44,6 +45,7 @@ router.get("/", (req, res) => {
   });
 });
 
+// HTMLエスケープ関数
 const escapeHTML = (str) => {
   if (!str) return str;
   return str
@@ -58,6 +60,7 @@ const escapeHTML = (str) => {
 router.post("/", adminOnly, upload.single("image"), async (req, res) => {
   let { title, content } = req.body;
   
+  // 画像がアップロードされた場合はストレージサービスに保存し、URLを取得します。エラーが発生した場合は500エラーを返します。
   let imageUrl = null;
   if (req.file) {
     try {
@@ -69,13 +72,16 @@ router.post("/", adminOnly, upload.single("image"), async (req, res) => {
     }
   }
 
+  // タイトルと内容のバリデーション
   if (!title || !content) {
     return res.status(400).json({ error: "タイトルと本文は必須です" });
   }
 
+  // タイトルと内容をHTMLエスケープして保存します。これにより、XSS攻撃を防止します。
   title = escapeHTML(title);
   content = escapeHTML(content);
 
+  // データベースにブログ投稿を保存します。成功した場合は新しい投稿のIDを返し、失敗した場合は500エラーを返します。
   db.run(
     "INSERT INTO articles (title, content, image_url) VALUES (?, ?, ?)",
     [title, content, imageUrl],
@@ -98,16 +104,18 @@ router.put("/:id", adminOnly, (req, res) => {
     return res.status(400).json({ error: "タイトルと本文は必須です" });
   }
 
+  // タイトルと内容をHTMLエスケープして保存します。これにより、XSS攻撃を防止します。
   title = escapeHTML(title);
   content = escapeHTML(content);
 
+  // データベースにブログ投稿を更新します。成功した場合は成功レスポンスを返し、失敗した場合は500エラーを返します。
   db.run(
     "UPDATE articles SET title = ?, content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
     [title, content, id],
     function(err) {
       if (err) {
         console.error(err);
-        return res.status(500).json({ error: "サーバーエラー" });
+        return res.status(500).json({ error: "サーバーエラー" });  // エラーが発生した場合は500エラーを返します。
       }
       logger.logAction("UPDATE", "blog", id);
       res.json({ success: true });
@@ -121,11 +129,12 @@ router.delete("/:id", adminOnly, (req, res) => {
   db.run("DELETE FROM articles WHERE id = ?", [id], function(err) {
     if (err) {
       console.error(err);
-      return res.status(500).json({ error: "サーバーエラー" });
+      return res.status(500).json({ error: "サーバーエラー" });   // エラーが発生した場合は500エラーを返します。
     }
     logger.logAction("DELETE", "blog", id);
     res.json({ success: true });
   });
 });
 
+// 管理者用の全ブログ投稿取得（IPアドレスやデバイスIDも含む）
 module.exports = router;

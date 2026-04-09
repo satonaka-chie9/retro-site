@@ -1,3 +1,4 @@
+// 画面上での描画とチャットのリアルタイム通信を管理するJavaScriptコードです。Socket.IOを使用してサーバーと通信し、キャンバスへの描画やチャットメッセージの送受信を行います。
 const socket = io();
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
@@ -5,11 +6,11 @@ const brushCursor = document.getElementById('brush-cursor');
 const colorPicker = document.getElementById('colorPicker');
 const brushSize = document.getElementById('brushSize');
 
+// デバイスIDをローカルストレージに保存して取得する関数。これにより、同じブラウザからの投稿を識別できます。
 let drawing = false;
 let currentTool = 'pen';
 let startX, startY;
-let snapshot;
-
+// デバイスIDをローカルストレージに保存して取得する関数。これにより、同じブラウザからの投稿を識別できます。
 function getDeviceId() {
   let deviceId = localStorage.getItem("device_id");
   if (!deviceId) {
@@ -35,17 +36,20 @@ canvas.addEventListener('mousedown', (e) => {
   startX = e.clientX - rect.left;
   startY = e.clientY - rect.top;
   
+  // 塗りつぶしツールが選択されている場合は、クリックした位置を起点に塗りつぶし処理を行います。描画ツールの場合は、描画の開始点を記録し、マウスの動きに合わせて描画を行います。
   if (currentTool === 'fill') {
     fill(startX, startY, colorPicker.value);
     syncCanvas();
     return;
   }
 
+  // 描画ツールの場合は、描画の開始点を記録し、マウスの動きに合わせて描画を行います。
   ctx.beginPath();
   ctx.moveTo(startX, startY);
   snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
 });
 
+// マウスがキャンバス上で動いたときの処理。ブラシカーソルの位置を更新し、描画ツールが選択されている場合は描画を行います。
 canvas.addEventListener('mousemove', (e) => {
   const rect = canvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
@@ -60,8 +64,10 @@ canvas.addEventListener('mousemove', (e) => {
   brushCursor.style.width = `${size}px`;
   brushCursor.style.height = `${size}px`;
 
+  // 描画ツールが選択されている場合は、マウスの動きに合わせて描画を行います。塗りつぶしツールの場合は、マウスの動きに合わせた描画は行わず、クリックした位置を起点に塗りつぶし処理を行います。
   if (!drawing || currentTool === 'fill') return;
 
+  // 描画ツールが選択されている場合は、マウスの動きに合わせて描画を行います。塗りつぶしツールの場合は、マウスの動きに合わせた描画は行わず、クリックした位置を起点に塗りつぶし処理を行います。
   if (currentTool === 'pen' || currentTool === 'eraser') {
     ctx.globalCompositeOperation = currentTool === 'eraser' ? 'destination-out' : 'source-over';
     ctx.strokeStyle = colorPicker.value;
@@ -70,6 +76,7 @@ canvas.addEventListener('mousemove', (e) => {
     ctx.lineTo(x, y);
     ctx.stroke();
     
+    // 描画内容をサーバーに送信する関数。これにより、他のユーザーの画面にもリアルタイムで描画内容が反映されます。描画ツールがペンや消しゴムの場合は、描画の開始点と終了点、色、サイズなどの情報をサーバーに送信します。塗りつぶしツールの場合は、クリックした位置と塗りつぶす色の情報をサーバーに送信します。
     socket.emit('drawing', {
       type: 'pen',
       x, y,
@@ -87,6 +94,7 @@ canvas.addEventListener('mousemove', (e) => {
     ctx.strokeStyle = colorPicker.value;
     ctx.lineWidth = brushSize.value;
     
+    // 描画ツールが直線や四角の場合は、マウスの動きに合わせてプレビュー表示を行います。実際の描画はマウスを離したときに行われます。
     if (currentTool === 'line') {
       ctx.beginPath();
       ctx.moveTo(startX, startY);
@@ -98,18 +106,22 @@ canvas.addEventListener('mousemove', (e) => {
   }
 });
 
+// マウスがキャンバスから離れたときの処理。ブラシカーソルを非表示にします。
 canvas.addEventListener('mouseleave', () => {
   brushCursor.style.display = 'none';
 });
 
+// マウスがキャンバス上で離されたときの処理。描画を終了し、描画内容をサーバーに送信します。描画ツールが直線や四角の場合は、描画の開始点と終了点、色、サイズなどの情報をサーバーに送信します。
 canvas.addEventListener('mouseup', (e) => {
   if (!drawing) return;
   drawing = false;
 
+  //  描画ツールが直線や四角の場合は、描画の開始点と終了点、色、サイズなどの情報をサーバーに送信します。塗りつぶしツールの場合は、クリックした位置と塗りつぶす色の情報をサーバーに送信します。
   const rect = canvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
 
+  // 描画内容をサーバーに送信する関数。これにより、他のユーザーの画面にもリアルタイムで描画内容が反映されます。描画ツールがペンや消しゴムの場合は、描画の開始点と終了点、色、サイズなどの情報をサーバーに送信します。塗りつぶしツールの場合は、クリックした位置と塗りつぶす色の情報をサーバーに送信します。
   if (currentTool === 'line' || currentTool === 'rect') {
     socket.emit('drawing', {
       type: currentTool,
@@ -126,21 +138,26 @@ function fill(startX, startY, fillColor) {
   const fillRGB = hexToRgb(fillColor);
   if (colorsMatch(targetColor, fillRGB)) return;
 
+  // シードフィルアルゴリズムを使用して、クリックした位置を起点に同じ色の領域を塗りつぶします。再帰的な方法ではなく、スタックを使用して実装しています。これにより、ブラウザのスタックサイズ制限を回避できます。
   const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const stack = [[Math.round(startX), Math.round(startY)]];
   
+  // シードフィルアルゴリズムを使用して、クリックした位置を起点に同じ色の領域を塗りつぶします。再帰的な方法ではなく、スタックを使用して実装しています。これにより、ブラウザのスタックサイズ制限を回避できます。
   while (stack.length > 0) {
     const [x, y] = stack.pop();
     const currentPos = (y * canvas.width + x) * 4;
     
+    // キャンバスの範囲外や、対象色と異なる色の場合はスキップします。これにより、塗りつぶしがキャンバスの外に広がるのを防ぎ、同じ色以外の領域を塗りつぶさないようにします。
     if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) continue;
     if (!colorsMatch(getPixelAt(pixels, x, y), targetColor)) continue;
 
+    // 対象色と同じ色の場合は、塗りつぶし色に変更し、隣接するピクセルをスタックに追加します。これにより、同じ色の領域全体が塗りつぶされます。
     setPixelAt(pixels, x, y, fillRGB);
     stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
   }
   ctx.putImageData(pixels, 0, 0);
   
+  // 塗りつぶし内容をサーバーに送信する関数。これにより、他のユーザーの画面にもリアルタイムで塗りつぶし内容が反映されます。クリックした位置と塗りつぶす色の情報をサーバーに送信します。
   socket.emit('drawing', {
     type: 'fill',
     x: startX, y: startY,
@@ -148,6 +165,7 @@ function fill(startX, startY, fillColor) {
   });
 }
 
+// キャンバス上の特定のピクセルの色を取得する関数。これにより、塗りつぶしツールがクリックした位置の色を判定できます。
 function getPixelColor(x, y) {
   const p = ctx.getImageData(x, y, 1, 1).data;
   return { r: p[0], g: p[1], b: p[2], a: p[3] };
@@ -175,6 +193,7 @@ socket.on('drawing', (data) => {
   ctx.lineWidth = data.size;
   ctx.lineCap = 'round';
 
+  // サーバーから受信した描画内容を画面に反映する処理。描画ツールがペンや消しゴムの場合は、描画の開始点と終了点、色、サイズなどの情報を使用して描画を行います。塗りつぶしツールの場合は、クリックした位置と塗りつぶす色の情報を使用して塗りつぶし処理を行います。
   if (data.type === 'pen') {
     ctx.beginPath();
     ctx.moveTo(data.lastX, data.lastY);
@@ -192,14 +211,17 @@ socket.on('drawing', (data) => {
   }
 });
 
+// チャット受信
 socket.on('chat_history', (rows) => {
   const chatMessages = document.getElementById('chat_messages');
   chatMessages.innerHTML = '';
   rows.forEach(appendMessage);
 });
 
+// サーバーから受信したチャットメッセージを画面に反映する処理。チャットメッセージの送信者の名前とメッセージ内容をHTMLに整形して表示します。
 socket.on('chat', appendMessage);
 
+// 描画内容をサーバーに送信する関数。これにより、他のユーザーの画面にもリアルタイムで描画内容が反映されます。描画ツールがペンや消しゴムの場合は、描画の開始点と終了点、色、サイズなどの情報をサーバーに送信します。塗りつぶしツールの場合は、クリックした位置と塗りつぶす色の情報をサーバーに送信します。
 function appendMessage(data) {
   const chatMessages = document.getElementById('chat_messages');
   const div = document.createElement('div');
@@ -220,6 +242,7 @@ document.getElementById('btn_clear').onclick = () => {
   }
 };
 
+// サーバーからキャンバス全消去の指示を受け取ったときの処理。キャンバスを全消去します。
 socket.on('clearCanvas', () => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 });

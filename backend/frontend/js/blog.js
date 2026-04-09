@@ -1,5 +1,6 @@
 let csrfToken = "";
 
+// CSRFトークンをサーバーから取得して保存する関数。APIエンドポイントからCSRFトークンを取得し、グローバル変数に保存します。これにより、後続のAPIリクエストでCSRFトークンを使用してセキュリティを確保できます。
 async function fetchCsrfToken() {
   try {
     const res = await fetch("/api/csrf-token");
@@ -10,11 +11,13 @@ async function fetchCsrfToken() {
   }
 }
 
+// 描画内容をサーバーに送信する関数。これにより、他のユーザーの画面にもリアルタイムで描画内容が反映されます。描画ツールがペンや消しゴムの場合は、描画の開始点と終了点、色、サイズなどの情報をサーバーに送信します。塗りつぶしツールの場合は、クリックした位置と塗りつぶす色の情報をサーバーに送信します。
 function getAdminToken() {
   const token = localStorage.getItem("admin_token");
   return (token && token !== "undefined") ? token : "";
 }
 
+// デバイスIDをローカルストレージに保存して取得する関数。これにより、同じブラウザからの投稿を識別できます。
 function getDeviceId() {
   let deviceId = localStorage.getItem("device_id");
   if (!deviceId) {
@@ -24,6 +27,7 @@ function getDeviceId() {
   return deviceId;
 }
 
+// 日付を日本時間で「YYYY/MM/DD HH:mm:ss」形式に整形する関数。デフォルトだと日本でもUTCで表示されるため、明示的に日本時間でフォーマットします。
 function formatDate(dateInput) {
   if (!dateInput) return "";
   let date;
@@ -44,6 +48,7 @@ function formatDate(dateInput) {
   return `${p.year}/${p.month}/${p.day} ${p.hour}:${p.minute}:${p.second}`;
 }
 
+// ブログ記事をAPIから取得して表示する関数。APIエンドポイントからブログ記事のリストを取得し、HTMLに整形して表示します。管理者の場合は、記事の編集や削除のオプションも表示されます。
 async function loadBlogs() {
   const container = document.getElementById("blog_container");
   if (!container) return;
@@ -56,10 +61,12 @@ async function loadBlogs() {
       return;
     }
 
+    // 管理者かどうかを判定し、管理者の場合は記事の投稿フォームを表示します。これにより、管理者は新しい記事を投稿できるようになります。
     const isAdmin = getAdminToken().length > 0;
     const blogFormArea = document.getElementById("blog_post_form");
     if (isAdmin && blogFormArea) blogFormArea.classList.remove("hidden");
 
+    // 取得したブログ記事をHTMLに整形して表示します。記事のタイトル、作成日時、内容、画像などを表示し、管理者の場合は編集や削除のオプションも表示します。
     container.innerHTML = "";
     blogs.forEach(blog => {
       const div = document.createElement("div");
@@ -68,6 +75,7 @@ async function loadBlogs() {
       div.style.borderBottom = "1px dashed #666";
       div.style.paddingBottom = "10px";
 
+      // ブログ記事の内容をHTMLに整形して表示する部分。記事のタイトル、作成日時、内容、画像などを表示します。管理者の場合は編集や削除のオプションも表示します。
       div.innerHTML = `
         <div class="post_header" style="font-size: 1.2em; font-weight: bold; color: #00FF00;">
           <span class="blog-title"></span>

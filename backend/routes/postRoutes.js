@@ -126,17 +126,35 @@ router.post("/", postLimiter, checkIPBan, postValidation, validate, async (req, 
         }
 
         // ぬるぽチェック
+        //むかしの掲示板でnul pointer exceptionを意味する「ぬるぽ」という言葉が投稿されたときに、レスポンスとして「ガッ」と返す文化がありました。ここでは、その文化を再現するために、投稿内容に「ぬるぽ」が含まれている場合に自動で「ガッ」という投稿を生成する機能を実装しています。
+        //遊び心として導入してみました。
         if (content && content.includes("ぬるぽ")) {
-          db.run(
-            "INSERT INTO posts (name, content, device_id, ip) VALUES (?, ?, ?, ?)",
-            ["null_bot", "ガッ", "bot_id", "127.0.0.1"],
-            function (botErr) {
-              if (botErr) {
-                console.error("Bot response failed:", botErr);
+          const postId = this.lastID;
+          
+          // 返信バリエーション
+          const responses = [
+            `>>${postId}\nガッ`,
+            `>>${postId}\nガッ！`,
+            `>>${postId}\nガッ！！`,
+            `>>${postId}\nガッｗ`,
+            `>>${postId}\n　　　　 ∧＿∧ 　ガッ\n　　　 （　・∀・）\n　　　 ⊂　　　つ\n　　　 （　⌒　）\n　　　　し' じ`
+          ];
+          const botMessage = responses[Math.floor(Math.random() * responses.length)];
+          
+          // 0.7秒から3.2秒の間でランダムに待機してから自動返信を実行
+          const delay = Math.floor(Math.random() * (3200 - 700 + 1)) + 700;
+          setTimeout(() => {
+            db.run(
+              "INSERT INTO posts (name, content, device_id, ip) VALUES (?, ?, ?, ?)",
+              ["null_bot", botMessage, "bot_id", "127.0.0.1"],
+              function (botErr) {
+                if (botErr) {
+                  console.error("Bot response failed:", botErr);
+                }
+                if (req.io) req.io.emit("post_update");
               }
-              if (req.io) req.io.emit("post_update");
-            }
-          );
+            );
+          }, delay);
         } else {
           if (req.io) req.io.emit("post_update");
         }
@@ -157,6 +175,7 @@ router.put("/:id", checkIPBan, postValidation, validate, (req, res) => {
   const adminSecret = process.env.ADMIN_TOKEN || "default-secret-token";
   const isAdmin = (adminTokenFromHeader === adminSecret) || (adminTokenFromBody === adminSecret);
 
+  // 投稿の所有者または管理者のみが編集可能
   db.get("SELECT device_id FROM posts WHERE id = ?", [id], (err, row) => {
     if (err) {
       console.error(err);
@@ -164,10 +183,12 @@ router.put("/:id", checkIPBan, postValidation, validate, (req, res) => {
     }
     if (!row) return res.status(404).json({ error: "投稿が見つかりません" });
 
+    // 管理者でない場合、投稿のdevice_idとリクエストのdevice_idが一致する必要がある
     if (!isAdmin && row.device_id !== device_id) {
       return res.status(403).json({ error: "他人の投稿は編集できません" });
     }
 
+    // 名前の重複チェックは省略（必要なら追加可能）
     db.run(
       `UPDATE posts
        SET name = ?, content = ?, updated_at = CURRENT_TIMESTAMP
@@ -195,6 +216,7 @@ router.delete("/:id", checkIPBan, (req, res) => {
   const adminSecret = process.env.ADMIN_TOKEN || "default-secret-token";
   const isAdmin = (adminTokenFromHeader === adminSecret) || (adminTokenFromBody === adminSecret);
 
+  // 投稿の所有者または管理者のみが削除可能
   db.get("SELECT device_id FROM posts WHERE id = ?", [id], (err, row) => {
     if (err) {
       console.error(err);
@@ -206,6 +228,7 @@ router.delete("/:id", checkIPBan, (req, res) => {
       return res.status(403).json({ error: "他人の投稿は削除できません" });
     }
 
+    // 投稿を削除
     db.run("DELETE FROM posts WHERE id = ?", [id], function (err) {
       if (err) {
         console.error(err);
@@ -218,4 +241,5 @@ router.delete("/:id", checkIPBan, (req, res) => {
   });
 });
 
+// 管理者用の全投稿取得（IPアドレスやデバイスIDも含む）
 module.exports = router;

@@ -1,4 +1,6 @@
-# Terminal-style-retro-site 📟
+# Terminal-style-retro-site
+
+https://retro-site-cm6n.onrender.com/index.html
 
 ![Label](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white)
 ![Label](https://img.shields.io/badge/-Docker-EEE.svg?logo=docker&style=flat)
@@ -14,7 +16,6 @@
 一方で、単に外観を再現するだけではなく、セキュリティや保守性を考慮し、バックエンドについては現代的な技術や設計思想を意識して実装しています。
 
 開発過程ではAIツールも補助的に活用しましたが、技術的な理解を深めることを重視し、自ら調査・検証を行いながら、実用可能なレベルまで完成させました。
-
 
 
 ## 特徴

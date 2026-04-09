@@ -1,3 +1,5 @@
+// セキュリティ検証スクリプト。サーバーのバリデーションが正しく機能しているかをテストします。
+
 const fetch = require('node-fetch');
 const { spawn } = require('child_process');
 const path = require('path');

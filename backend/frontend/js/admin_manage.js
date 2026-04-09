@@ -1,5 +1,6 @@
 let csrfToken = "";
 
+// CSRFトークンをサーバーから取得して保存する関数。APIエンドポイントからCSRFトークンを取得し、グローバル変数に保存します。
 async function fetchCsrfToken() {
   try {
     const res = await fetch("/api/csrf-token");
@@ -10,11 +11,13 @@ async function fetchCsrfToken() {
   }
 }
 
+// 管理者用の統計情報を取得して表示する関数。ここでは、APIから統計情報を取得し、HTMLに整形して表示します。
 function getAdminToken() {
   const token = localStorage.getItem("admin_token");
   return (token && token !== "undefined") ? token : "";
 }
 
+// 管理者用の統計情報を取得して表示する関数。ここでは、APIから統計情報を取得し、HTMLに整形して表示します。
 function formatDate(dateInput) {
   if (!dateInput) return "";
   let date;
@@ -23,7 +26,8 @@ function formatDate(dateInput) {
     if (dateInput.includes("T") || dateInput.includes("Z")) date = new Date(dateInput);
     else date = new Date(dateInput.replace(" ", "T") + "Z");
   } else date = new Date(dateInput);
-  if (isNaN(date.getTime())) return "日付不明";
+  if (isNaN(date.getTime())) return "日付不明"; // 無効な日付の場合のフォールバック
+  // 日本時間でのフォーマット
   const formatter = new Intl.DateTimeFormat("ja-JP", {
     timeZone: "Asia/Tokyo",
     year: "numeric", month: "numeric", day: "numeric",
@@ -35,6 +39,7 @@ function formatDate(dateInput) {
   return `${p.year}/${p.month}/${p.day} ${p.hour}:${p.minute}:${p.second}`;
 }
 
+// 管理者用の統計と拍手メッセージを取得して表示する関数。ここでは、APIから統計情報を取得し、HTMLに整形して表示します。
 async function fetchBans() {
   const token = getAdminToken();
   if (!token) {
@@ -43,6 +48,7 @@ async function fetchBans() {
     return;
   }
 
+  // APIから制限中のIPリストを取得して表示する部分。ここでは、APIから制限中のIPリストを取得し、HTMLに整形して表示します。
   const listEl = document.getElementById("ban-list");
   try {
     const res = await fetch("/api/admin/restrictions", {
@@ -56,6 +62,7 @@ async function fetchBans() {
       return;
     }
 
+    // 取得した制限中のIPリストをHTMLに整形して表示します。ここでは、IPアドレス、理由、作成日時、解除ボタンを表示する例を示しています。
     listEl.innerHTML = "";
     bans.forEach(b => {
       const tr = document.createElement("tr");
@@ -73,18 +80,19 @@ async function fetchBans() {
     });
 
   } catch (err) {
-    listEl.innerHTML = '<tr><td colspan="4" style="color:red;">データの取得に失敗しました。</td></tr>';
+    listEl.innerHTML = '<tr><td colspan="4" style="color:red;">データの取得に失敗しました。</td></tr>'; // エラーが発生した場合のユーザーへの通知
   }
 }
 
+// 管理者用の統計と拍手メッセージを取得して表示する関数。ここでは、APIから統計情報を取得し、HTMLに整形して表示します。
 async function addBan() {
   const ip = document.getElementById("ban-ip").value;
   const reason = document.getElementById("ban-reason").value;
   const token = getAdminToken();
 
-  if (!ip) return alert("IPアドレスを入力してください");
+  if (!ip) return alert("IPアドレスを入力してください"); // IPアドレスが入力されていない場合のバリデーション
   if (!csrfToken) await fetchCsrfToken();
-
+  // APIからのレスポンスを処理し、成功した場合はユーザーに追加完了を通知し、入力フィールドをクリアして制限リストを再取得します。失敗した場合はエラーメッセージを表示し、CSRFトークンを再取得します。
   try {
     const res = await fetch("/api/admin/restrictions", {
       method: "POST",
@@ -96,26 +104,29 @@ async function addBan() {
       body: JSON.stringify({ ip, reason })
     });
 
+    // APIからのレスポンスを処理し、成功した場合はユーザーに追加完了を通知し、入力フィールドをクリアして制限リストを再取得します。失敗した場合はエラーメッセージを表示し、CSRFトークンを再取得します。
     const data = await res.json();
     if (res.ok) {
-      alert("IP制限を追加しました");
+      alert("IP制限を追加しました"); // ユーザーに追加完了を通知します。
       document.getElementById("ban-ip").value = "";
       document.getElementById("ban-reason").value = "";
       fetchBans();
     } else {
-      alert(data.error || "追加に失敗しました");
+      alert(data.error || "追加に失敗しました"); // エラーメッセージがAPIから提供されている場合はそれを表示し、そうでない場合は一般的なエラーメッセージを表示します。
       await fetchCsrfToken();
     }
   } catch (err) {
-    alert("エラーが発生しました");
+    alert("エラーが発生しました"); // ネットワークエラーなど、APIリクエスト自体が失敗した場合のユーザーへの通知
   }
 }
 
+// IP制限を解除する関数。ユーザーに確認ダイアログを表示し、APIリクエストを送信してIP制限を解除します。成功した場合は制限リストを再取得し、失敗した場合はエラーメッセージを表示します。
 async function unbanIP(id) {
   if (!confirm("このIP制限を解除しますか？")) return;
   const token = getAdminToken();
   if (!csrfToken) await fetchCsrfToken();
 
+  // APIからのレスポンスを処理し、成功した場合はユーザーに解除完了を通知し、制限リストを再取得します。失敗した場合はエラーメッセージを表示し、CSRFトークンを再取得します。
   try {
     const res = await fetch(`/api/admin/restrictions/${id}`, {
       method: "DELETE",
@@ -125,24 +136,27 @@ async function unbanIP(id) {
       }
     });
 
+    // APIからのレスポンスを処理し、成功した場合はユーザーに解除完了を通知し、制限リストを再取得します。失敗した場合はエラーメッセージを表示し、CSRFトークンを再取得します。
     if (res.ok) {
       fetchBans();
     } else {
       const data = await res.json();
-      alert(data.error || "解除に失敗しました");
+      alert(data.error || "解除に失敗しました"); 
       await fetchCsrfToken();
     }
   } catch (err) {
-    alert("エラーが発生しました");
+    alert("エラーが発生しました"); // ネットワークエラーなど、APIリクエスト自体が失敗した場合のユーザーへの通知
   }
 }
 
+// 管理者のログアウト関数。ローカルストレージから管理者トークンを削除し、ユーザーにログアウト完了を通知してトップページにリダイレクトします。
 function adminLogout() {
   localStorage.removeItem("admin_token");
-  alert("ログアウトしました。");
+  alert("ログアウトしました。"); // ユーザーにログアウト完了を通知します。
   location.href = "index.html";
 }
 
+// ページが読み込まれたときに、CSRFトークンを取得し、制限中のIPリストを表示する関数を呼び出します。また、追加ボタンとログアウトボタンのクリックイベントを設定します。
 document.addEventListener("DOMContentLoaded", async () => {
   await fetchCsrfToken();
   fetchBans();
