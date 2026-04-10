@@ -75,12 +75,11 @@ async function loadThreads() {
     div.style.borderBottom = "1px dotted #888";
 
     const created = formatDate(thread.created_at);
-    const isOwner = thread.device_id === currentDeviceId;
 
     div.innerHTML = `
       <a href="#" class="thread_link" data-id="${thread.id}" data-title="${thread.title}">${thread.title}</a>
       <span style="font-size: 0.8em; color: #666; margin-left: 10px;">(${created})</span>
-      ${(isOwner || isAdmin) ? `<button class="delete-thread-btn" data-id="${thread.id}" style="font-size: 0.7em; margin-left: 5px;">削除</button>` : ""}
+      ${isAdmin ? `<button class="delete-thread-btn" data-id="${thread.id}" style="font-size: 0.7em; margin-left: 5px;">削除</button>` : ""}
     `;
 
     div.querySelector(".thread_link").addEventListener("click", (e) => {

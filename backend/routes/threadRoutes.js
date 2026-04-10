@@ -48,26 +48,25 @@ router.post("/", threadLimiter, (req, res) => {
   );
 });
 
-// スレッド削除 (管理者のみ、または作成者のみ)
+// スレッド削除 (管理者のみ)
 router.delete("/:id", (req, res) => {
   const { id } = req.params;
-  const { device_id } = req.body;
   const adminTokenFromHeader = req.headers["x-admin-token"];
   const adminSecret = process.env.ADMIN_TOKEN || "default-secret-token";
   const isAdmin = (adminTokenFromHeader === adminSecret);
 
-  db.get("SELECT device_id FROM threads WHERE id = ?", [id], (err, row) => {
+  if (!isAdmin) {
+    return res.status(403).json({ error: "管理者権限が必要です" });
+  }
+
+  db.get("SELECT 1 FROM threads WHERE id = ?", [id], (err, row) => {
     if (err) return res.status(500).json({ error: "サーバーエラー" });
     if (!row) return res.status(404).json({ error: "スレッドが見つかりません" });
-
-    if (!isAdmin && row.device_id !== device_id) {
-      return res.status(403).json({ error: "権限がありません" });
-    }
 
     db.run("DELETE FROM threads WHERE id = ?", [id], function(err) {
       if (err) return res.status(500).json({ error: "サーバーエラー" });
       
-      // スレッド内の投稿も削除するかどうか。ここでは削除することにする。
+      // スレッド内の投稿も削除
       db.run("DELETE FROM posts WHERE thread_id = ?", [id], (err) => {
         if (err) console.error("Failed to delete posts in thread:", err);
       });
