@@ -110,8 +110,17 @@ async function initDb() {
   
   if (isPostgres) {
     queries.push(`
+      CREATE TABLE IF NOT EXISTS threads (
+        id SERIAL PRIMARY KEY,
+        title TEXT,
+        device_id TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    queries.push(`
       CREATE TABLE IF NOT EXISTS posts (
         id SERIAL PRIMARY KEY,
+        thread_id INTEGER,
         name TEXT,
         content TEXT,
         ip TEXT,
@@ -119,6 +128,15 @@ async function initDb() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP
       )
+    `);
+    // thread_idカラムが存在しない場合は追加する
+    queries.push(`
+      DO $$ 
+      BEGIN 
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='posts' AND column_name='thread_id') THEN
+          ALTER TABLE posts ADD COLUMN thread_id INTEGER;
+        END IF;
+      END $$;
     `);
     queries.push(`
       CREATE TABLE IF NOT EXISTS counter (
