@@ -1,5 +1,7 @@
+// カウンターサービス
 const db = require("../db/database");
 
+// データベースのgetをPromise化
 function dbGet(sql, params = []) {
   return new Promise((resolve, reject) => {
     db.get(sql, params, (err, row) => {
@@ -9,6 +11,7 @@ function dbGet(sql, params = []) {
   });
 }
 
+// データベースのrunをPromise化
 function dbRun(sql, params = []) {
   return new Promise((resolve, reject) => {
     db.run(sql, params, function (err) {
@@ -54,6 +57,7 @@ async function handleAccess(ip, deviceId) {
   return { counted: true };
 }
 
+// 現在のカウンター値を取得する関数。これにより、フロントエンドは現在の訪問者数を表示できます。
 async function getCounter() {
   const row = await dbGet("SELECT count FROM counter WHERE id = 1");
   return row || { count: 0 };

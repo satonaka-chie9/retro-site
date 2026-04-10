@@ -217,8 +217,17 @@ async function initDb() {
     // SQLite initialization (mostly same as original but using db object)
     db.sqliteDb.serialize(() => {
       db.run(`
+        CREATE TABLE IF NOT EXISTS threads (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT,
+          device_id TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      db.run(`
         CREATE TABLE IF NOT EXISTS posts (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
+          thread_id INTEGER,
           name TEXT,
           content TEXT,
           ip TEXT,
@@ -227,6 +236,9 @@ async function initDb() {
           updated_at DATETIME
         )
       `);
+      db.run("ALTER TABLE posts ADD COLUMN thread_id INTEGER", (err) => {
+        // Ignore error if column already exists
+      });
       db.run("ALTER TABLE posts ADD COLUMN device_id TEXT", (err) => {
         // Ignore error if column already exists
       });

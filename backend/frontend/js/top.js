@@ -5,7 +5,7 @@ async function fetchCsrfToken() {
   }
   return "";
 }
-
+// トップページのJavaScript。お知らせや近況の表示、管理者用の投稿機能などを担当します。
 function formatDate(dateInput) {
   if (!dateInput) return "";
   let date;
@@ -26,6 +26,7 @@ function formatDate(dateInput) {
   return `${p.year}/${p.month}/${p.day} ${p.hour}:${p.minute}:${p.second}`;
 }
 
+// お知らせをAPIから取得して表示する関数。APIエンドポイントからお知らせのリストを取得し、HTMLに整形して表示します。管理者の場合は、編集や削除のオプションも表示されます。
 async function fetchNews() {
   const listEl = document.getElementById("news-list");
   if (!listEl) return;
@@ -39,6 +40,7 @@ async function fetchNews() {
       return;
     }
 
+    // 管理者かどうかを判定するためのフラグ。管理者の場合は、編集や削除のオプションを表示します。
     const isAdmin = (localStorage.getItem("admin_token") || "").length > 0;
 
     listEl.innerHTML = "";
@@ -46,6 +48,7 @@ async function fetchNews() {
       const dateVal = item.created_at || item.updated_at;
       const dateStr = formatDate(dateVal);
       
+      // お知らせアイテムのHTML構造を作成します。管理者の場合は、編集と削除のボタンも表示されます。編集フォームと削除確認も同じ構造内に用意しておき、必要に応じて表示・非表示を切り替えます。
       const div = document.createElement("div");
       div.className = "news-item";
       div.id = `news-item-${item.id}`;
@@ -252,6 +255,7 @@ async function fetchStatuses() {
       return;
     }
 
+    // 管理者かどうかを判定するためのフラグ。管理者の場合は、編集や削除のオプションを表示します。
     const isAdmin = (localStorage.getItem("admin_token") || "").length > 0;
     listEl.innerHTML = "";
     items.forEach(item => {
@@ -298,11 +302,13 @@ async function fetchStatuses() {
   }
 }
 
+// 近況投稿機能の初期化
 function initStatusPosting() {
   const postBtn = document.getElementById("status-post-btn");
   const inputEl = document.getElementById("status-new-input");
   if (!postBtn) return;
 
+  // 管理者トークンを取得する関数。管理者がログインしている場合はトークンを返す
   const getAdminToken = () => localStorage.getItem("admin_token") || "";
 
   postBtn.onclick = async () => {
@@ -321,6 +327,7 @@ function initStatusPosting() {
         body: JSON.stringify({ content })
       });
 
+      // APIからのレスポンスを処理し、成功した場合は入力フィールドをクリアして近況リストを再取得します。失敗した場合はエラーメッセージを表示し、CSRFトークンを再取得します。
       if (res.ok) {
         inputEl.value = "";
         fetchStatuses();

@@ -6,11 +6,13 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const bucketName = process.env.SUPABASE_BUCKET || 'retro-site-uploads';
 
+// ストレージサービス。Supabase Storageを使用するか、ローカルのuploadsディレクトリに保存します。
 let supabase = null;
 if (supabaseUrl && supabaseKey) {
   supabase = createClient(supabaseUrl, supabaseKey);
 }
 
+// ローカルストレージ用のアップロードディレクトリを作成（Supabaseが設定されていない場合のみ）
 const UPLOAD_DIR = path.join(__dirname, '../frontend/uploads');
 if (!supabase && !fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });

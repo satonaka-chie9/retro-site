@@ -21,27 +21,52 @@
     <p>自由に話してください</p>
     <p>荒らしや誹謗中傷はやめてね！</p>
 
-    <!-- 投稿一覧（ここにJSで差し込む） -->
-    <div id="posts_container"></div>
+    <!-- スレッド一覧 -->
+    <div id="thread_list_container">
+      <h2>スレッド一覧</h2>
+      <div id="threads_list"></div>
+      
+      <div class="thread_create_form">
+        <h3>新しいスレッドを立てる</h3>
+        <form id="threadForm">
+          <div>
+            タイトル：<input type="text" id="thread_title" size="40" required>
+          </div>
+          <div style="margin-top: 5px;">
+            <input type="submit" value="スレッド作成">
+          </div>
+        </form>
+      </div>
+    </div>
 
-    <!-- 投稿フォーム -->
-    <div class="post_form">
-      <h2>書き込みフォーム</h2>
-      <form id="postForm">
-        <div>
-          名前：<input type="text" id="name" size="20" value="名無しさん">
-        </div>
+    <!-- 投稿表示エリア (最初は非表示) -->
+    <div id="thread_view" class="hidden">
+      <button id="back_to_threads">← スレッド一覧に戻る</button>
+      <h2 id="current_thread_title"></h2>
+      <hr>
+      
+      <!-- 投稿一覧（ここにJSで差し込む） -->
+      <div id="posts_container"></div>
 
-        <div>
-          本文：<br>
-          <textarea id="message" rows="5" cols="50" required></textarea>
-        </div>
+      <!-- 投稿フォーム -->
+      <div class="post_form">
+        <h2>書き込みフォーム</h2>
+        <form id="postForm">
+          <div>
+            名前：<input type="text" id="name" size="20" value="名無しさん">
+          </div>
 
-        <div>
-          <input type="submit" value="書き込む">
-          <input type="reset" value="リセット">
-        </div>
-      </form>
+          <div>
+            本文：<br>
+            <textarea id="message" rows="5" cols="50" required></textarea>
+          </div>
+
+          <div>
+            <input type="submit" value="書き込む">
+            <input type="reset" value="リセット">
+          </div>
+        </form>
+      </div>
     </div>
 
   </div>

@@ -505,6 +505,37 @@ canvas {
   margin-bottom: 10px;
 }
 
+/* ===== BBS スレッド ===== */
+.thread_item {
+  border: 1px dashed #00FF00;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: #0c0c0c;
+}
+
+.thread_link {
+  color: #00FF00;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 1.1em;
+}
+
+.thread_link:hover {
+  text-decoration: underline;
+  background: #003300;
+}
+
+.thread_create_form {
+  border: 2px double #00FF00;
+  padding: 15px;
+  margin-top: 20px;
+  background: #111;
+}
+
+#back_to_threads {
+  margin-bottom: 15px;
+}
+
 .hidden {
   display: none;
 }

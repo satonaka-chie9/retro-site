@@ -1,5 +1,6 @@
 const { body } = require("express-validator");
 
+// 投稿のバリデーションルール
 exports.postValidation = [
   body("name")
     .trim()
@@ -7,6 +8,7 @@ exports.postValidation = [
     .notEmpty().withMessage("名前は必須です")
     .isLength({ max: 20 }).withMessage("名前は20文字以内です"),
 
+  // タイトルと内容のバリデーションルールを追加
   body("content")
     .trim()
     .escape()

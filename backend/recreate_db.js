@@ -1,3 +1,5 @@
+// データベースの再作成スクリプト。開発中にテーブル構造を変更した際などに使用します。
+
 const db = require("./db/database");
 
 async function recreateNews() {

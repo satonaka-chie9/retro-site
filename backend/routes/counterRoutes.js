@@ -1,7 +1,9 @@
+// カウンター関連のルート
 const express = require("express");
 const router = express.Router();
 const { handleAccess, getCounter } = require("../services/counterService");
 
+// IP取得を統一
 function getClientIp(req) {
   return (
     req.headers["x-forwarded-for"]?.split(",")[0] ||
@@ -32,4 +34,5 @@ router.get("/", async (req, res) => {
   }
 });
 
+// 管理者用の全アクセスログ取得
 module.exports = router;
