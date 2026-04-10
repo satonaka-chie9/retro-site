@@ -119,9 +119,14 @@ app.post("/api/admin/login", csrfProtection, (req, res) => {
 
 // ルートの登録
 const counterRoutes = require("./routes/counterRoutes");
+const threadRoutes = require("./routes/threadRoutes");
 const postRoutes = require("./routes/postRoutes");
 const blogRoutes = require("./routes/blogRoutes");
 app.use("/api/counter", counterRoutes);
+app.use("/api/threads", csrfProtection, (req, res, next) => {
+  req.io = io;
+  next();
+}, threadRoutes);
 app.use("/api/posts", csrfProtection, (req, res, next) => {
   req.io = io;
   next();

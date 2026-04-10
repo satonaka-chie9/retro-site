@@ -53,7 +53,20 @@ const checkIPBan = (req, res, next) => {
 
 // 投稿一覧
 router.get("/", (req, res) => {
-  db.all("SELECT * FROM posts", [], (err, rows) => {
+  const { thread_id } = req.query;
+  let sql = "SELECT * FROM posts";
+  let params = [];
+
+  if (thread_id) {
+    sql += " WHERE thread_id = ?";
+    params.push(thread_id);
+  } else {
+    // スレッドIDが指定されていない場合は、スレッドIDがNULLのもの（古い投稿など）のみを表示するか、
+    // あるいは何も表示しない。ここではNULLのものを表示することにする。
+    sql += " WHERE thread_id IS NULL";
+  }
+
+  db.all(sql, params, (err, rows) => {
     if (err) {
       console.error(err);
       return res.status(500).json({ error: "サーバー内部エラーが発生しました" });
@@ -64,7 +77,7 @@ router.get("/", (req, res) => {
 
 // 投稿追加
 router.post("/", postLimiter, checkIPBan, postValidation, validate, async (req, res) => {
-  let { name, content, device_id } = req.body;
+  let { name, content, device_id, thread_id } = req.body;
   const ip = getClientIp(req);
   const adminTokenHeader = req.headers["x-admin-token"];
   const adminTokenFromBody = req.body.admin_token;
@@ -117,8 +130,8 @@ router.post("/", postLimiter, checkIPBan, postValidation, validate, async (req, 
 
   function insertPost(resolvedName) {
     db.run(
-      "INSERT INTO posts (name, content, device_id, ip) VALUES (?, ?, ?, ?)",
-      [resolvedName, content, device_id, ip],
+      "INSERT INTO posts (name, content, device_id, ip, thread_id) VALUES (?, ?, ?, ?, ?)",
+      [resolvedName, content, device_id, ip, thread_id],
       function (err) {
         if (err) {
           console.error(err);
@@ -145,8 +158,8 @@ router.post("/", postLimiter, checkIPBan, postValidation, validate, async (req, 
           const delay = Math.floor(Math.random() * (3200 - 700 + 1)) + 700;
           setTimeout(() => {
             db.run(
-              "INSERT INTO posts (name, content, device_id, ip) VALUES (?, ?, ?, ?)",
-              ["null_bot", botMessage, "bot_id", "127.0.0.1"],
+              "INSERT INTO posts (name, content, device_id, ip, thread_id) VALUES (?, ?, ?, ?, ?)",
+              ["null_bot", botMessage, "bot_id", "127.0.0.1", thread_id],
               function (botErr) {
                 if (botErr) {
                   console.error("Bot response failed:", botErr);

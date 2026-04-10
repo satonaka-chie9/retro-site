@@ -46,9 +46,110 @@ function formatDate(dateInput) {
   return `${p.year}/${p.month}/${p.day} ${p.hour}:${p.minute}:${p.second}`;
 }
 
+let selectedThreadId = null;
+let selectedThreadTitle = "";
+
+// 管理者用の統計と拍手メッセージを取得して表示する関数。ここでは、APIから統計情報を取得し、HTMLに整形して表示します。
+async function loadThreads() {
+  const res = await fetch(API_BASE + "/api/threads");
+  const data = await res.json();
+
+  const threadsList = document.getElementById("threads_list");
+  if (!threadsList) return;
+  threadsList.innerHTML = "";
+
+  if (data.length === 0) {
+    threadsList.innerHTML = "<p>スレッドがありません。</p>";
+    return;
+  }
+
+  const adminToken = getAdminToken();
+  const currentDeviceId = getDeviceId();
+  const isAdmin = adminToken.length > 0;
+
+  data.forEach(thread => {
+    const div = document.createElement("div");
+    div.className = "thread_item";
+    div.style.margin = "10px 0";
+    div.style.padding = "5px";
+    div.style.borderBottom = "1px dotted #888";
+
+    const created = formatDate(thread.created_at);
+    const isOwner = thread.device_id === currentDeviceId;
+
+    div.innerHTML = `
+      <a href="#" class="thread_link" data-id="${thread.id}" data-title="${thread.title}">${thread.title}</a>
+      <span style="font-size: 0.8em; color: #666; margin-left: 10px;">(${created})</span>
+      ${(isOwner || isAdmin) ? `<button class="delete-thread-btn" data-id="${thread.id}" style="font-size: 0.7em; margin-left: 5px;">削除</button>` : ""}
+    `;
+
+    div.querySelector(".thread_link").addEventListener("click", (e) => {
+      e.preventDefault();
+      selectThread(thread.id, thread.title);
+    });
+
+    div.querySelector(".delete-thread-btn")?.addEventListener("click", async () => {
+      if (confirm("このスレッドと内のすべての投稿を削除しますか？")) {
+        await deleteThread(thread.id);
+      }
+    });
+
+    threadsList.appendChild(div);
+  });
+}
+
+function selectThread(id, title) {
+  selectedThreadId = id;
+  selectedThreadTitle = title;
+  
+  document.getElementById("thread_list_container").classList.add("hidden");
+  document.getElementById("thread_view").classList.remove("hidden");
+  document.getElementById("current_thread_title").textContent = title;
+  
+  loadPosts();
+}
+
+function showThreadList() {
+  selectedThreadId = null;
+  selectedThreadTitle = "";
+  
+  document.getElementById("thread_list_container").classList.remove("hidden");
+  document.getElementById("thread_view").classList.add("hidden");
+  
+  loadThreads();
+}
+
+async function deleteThread(id) {
+  let token = window.csrfToken;
+  if (!token && typeof window.getSharedCsrfToken === "function") {
+    token = await window.getSharedCsrfToken();
+  }
+
+  const res = await fetch(API_BASE + "/api/threads/" + id, {
+    method: "DELETE",
+    headers: { 
+      "Content-Type": "application/json",
+      "X-Admin-Token": getAdminToken(),
+      "X-CSRF-Token": token
+    },
+    body: JSON.stringify({
+      device_id: getDeviceId()
+    })
+  });
+
+  if (res.ok) {
+    loadThreads();
+  } else {
+    const data = await res.json();
+    alert(data.error || "スレッドの削除に失敗しました。");
+  }
+}
+
 // 管理者用の統計と拍手メッセージを取得して表示する関数。ここでは、APIから統計情報を取得し、HTMLに整形して表示します。
 async function loadPosts() {
-  const res = await fetch(API_BASE + "/api/posts");
+  if (selectedThreadId === null) return;
+
+  const res = await fetch(API_BASE + "/api/posts?thread_id=" + selectedThreadId);
   const data = await res.json();
 
 
@@ -215,6 +316,7 @@ if (postForm) {
       body: JSON.stringify({
         name,
         content,
+        thread_id: selectedThreadId,
         device_id: getDeviceId()
       })
     });
@@ -236,6 +338,43 @@ if (postForm) {
     }
   });
 }
+
+const threadForm = document.getElementById("threadForm");
+if (threadForm) {
+  threadForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const titleInput = document.getElementById("thread_title");
+    const title = titleInput.value;
+
+    let token = window.csrfToken;
+    if (!token && typeof window.getSharedCsrfToken === "function") {
+      token = await window.getSharedCsrfToken();
+    }
+
+    const res = await fetch(API_BASE + "/api/threads", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "X-CSRF-Token": token
+      },
+      body: JSON.stringify({
+        title,
+        device_id: getDeviceId()
+      })
+    });
+
+    if (res.ok) {
+      const resultData = await res.json();
+      titleInput.value = "";
+      selectThread(resultData.id, title);
+    } else {
+      const errorData = await res.json();
+      alert(errorData.error || "スレッドの作成に失敗しました。");
+    }
+  });
+}
+
+document.getElementById("back_to_threads")?.addEventListener("click", showThreadList);
 
 // 実際の編集処理
 async function performEditPost(id, currentName, newContent) {
@@ -304,10 +443,13 @@ if (typeof io !== "undefined") {
   socket.on("post_update", () => {
     loadPosts();
   });
+  socket.on("thread_update", () => {
+    loadThreads();
+  });
 }
 
 // 初期化
 document.addEventListener('DOMContentLoaded', async () => {
-  loadPosts();
+  loadThreads();
   restoreUserName();
 });
