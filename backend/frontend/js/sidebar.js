@@ -173,6 +173,8 @@ function initClapEvents() {
   const modal = document.getElementById("clap-modal");
   const overlay = document.getElementById("clap-overlay");
   const messageInput = document.getElementById("clap-message");
+  const thanksMsg = document.getElementById("clap-thanks-msg");
+  const actionArea = document.getElementById("clap-actions");
 
   if (!openBtn || !modal || !overlay) return;
 
@@ -180,6 +182,10 @@ function initClapEvents() {
     modal.style.display = "block";
     overlay.style.display = "block";
     messageInput.value = "";
+    messageInput.style.display = ""; 
+    thanksMsg.style.display = "none";
+    sendBtn.style.display = ""; 
+    actionArea.style.display = "flex";
     messageInput.focus();
   };
 
@@ -203,8 +209,19 @@ function initClapEvents() {
       });
 
       if (res.ok) {
-        alert("ありがとうございます！");
-        closeModal();
+        // ありがとうございますのインライン表示
+        messageInput.style.display = "none";
+        thanksMsg.style.display = "block";
+        // 送信ボタンを非表示にする
+        sendBtn.style.display = "none";
+
+        // 数秒後に自動的に閉じるか、ユーザーに閉じさせる
+        setTimeout(() => {
+          closeModal();
+          // 次回のためにボタンを元に戻しておく
+          sendBtn.style.display = "";
+          messageInput.style.display = "";
+        }, 1500);
       } else {
         alert("送信失敗");
       }

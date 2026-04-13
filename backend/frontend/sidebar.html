@@ -40,7 +40,10 @@
   <h3>👏 拍手</h3>
   <p class="clap-modal-desc">管理人に一言メッセージをどうぞ！<br>(拍手だけでもOKです)</p>
   <textarea id="clap-message" class="clap-textarea"></textarea>
-  <div class="flex-between">
+  <div id="clap-thanks-msg" style="display:none; color: #00ff00; text-align: center; margin-bottom: 10px;">
+    ありがとうございます！
+  </div>
+  <div class="flex-between" id="clap-actions">
     <button id="send-clap" class="flex-1 mr-5">送信</button>
     <button id="close-clap-modal" class="flex-1">閉じる</button>
   </div>
