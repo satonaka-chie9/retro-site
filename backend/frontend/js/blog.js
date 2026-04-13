@@ -94,7 +94,7 @@ async function loadBlogs() {
             <textarea class="edit-blog-content" style="width: 95%; height: 150px;"></textarea>
           </div>
           <div style="margin-top: 5px;">
-            <button class="save-blog-btn">保存</button>
+            <button class="save-blog-btn">完了</button>
             <button class="cancel-blog-btn">キャンセル</button>
           </div>
         </div>
@@ -142,10 +142,15 @@ async function loadBlogs() {
           footerArea.classList.add("hidden");
         };
 
-        div.querySelector(".save-blog-btn").onclick = () => {
+        div.querySelector(".save-blog-btn").onclick = async () => {
           const title = div.querySelector(".edit-blog-title").value;
           const content = div.querySelector(".edit-blog-content").value;
-          saveEditBlog(blog.id, title, content);
+          const success = await saveEditBlog(blog.id, title, content);
+          if (success) {
+            editArea.classList.add("hidden");
+            contentArea.classList.remove("hidden");
+            footerArea.classList.remove("hidden");
+          }
         };
 
         div.querySelector(".cancel-blog-btn").onclick = () => {
@@ -190,13 +195,16 @@ async function saveEditBlog(id, title, content) {
     });
     if (res.ok) {
       loadBlogs();
+      return true;
     } else {
       const data = await res.json();
       alert(data.error || "更新に失敗しました");
       await fetchCsrfToken();
+      return false;
     }
   } catch (err) {
     alert("エラーが発生しました");
+    return false;
   }
 }
 
