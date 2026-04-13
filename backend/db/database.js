@@ -204,7 +204,8 @@ async function initDb() {
       CREATE TABLE IF NOT EXISTS statuses (
         id SERIAL PRIMARY KEY,
         content TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     queries.push(`
@@ -325,7 +326,8 @@ async function initDb() {
         CREATE TABLE IF NOT EXISTS statuses (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           content TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);
       db.run(`

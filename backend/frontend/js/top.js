@@ -271,8 +271,8 @@ async function fetchStatuses() {
           <span style="font-size: 0.8em; color: #888;">[${dateStr}]</span>
           ${isAdmin ? `
             <div id="status-controls-${item.id}" style="font-size: 10px;">
-              <button onclick="startEditStatus(${item.id})" style="font-size: 10px;">編集</button>
-              <button onclick="showDeleteStatusConfirm(${item.id})" style="font-size: 10px;">削除</button>
+              <button class="status-btn" data-id="${item.id}" data-action="edit" style="font-size: 10px;">編集</button>
+              <button class="status-btn" data-id="${item.id}" data-action="delete" style="font-size: 10px;">削除</button>
             </div>
           ` : ''}
         </div>
@@ -282,16 +282,16 @@ async function fetchStatuses() {
         <div id="status-edit-form-${item.id}" class="inline-form hidden">
           <textarea id="status-edit-input-${item.id}" style="width: 100%; height: 40px; font-size: 0.9em;"></textarea>
           <div style="margin-top: 5px;">
-            <button onclick="saveEditStatus(${item.id})" style="font-size: 10px;">保存</button>
-            <button onclick="cancelEditStatus(${item.id})" style="font-size: 10px;">取消</button>
+            <button class="status-btn" data-id="${item.id}" data-action="save" style="font-size: 10px;">保存</button>
+            <button class="status-btn" data-id="${item.id}" data-action="cancel" style="font-size: 10px;">取消</button>
           </div>
         </div>
 
         <!-- インライン削除確認 -->
         <div id="status-delete-confirm-${item.id}" class="inline-confirm hidden">
           <span class="confirm-msg" style="font-size: 11px;">削除しますか？</span>
-          <button onclick="performDeleteStatus(${item.id})" style="font-size: 10px;">はい</button>
-          <button onclick="hideDeleteStatusConfirm(${item.id})" style="font-size: 10px;">いいえ</button>
+          <button class="status-btn" data-id="${item.id}" data-action="confirm-delete" style="font-size: 10px;">はい</button>
+          <button class="status-btn" data-id="${item.id}" data-action="cancel-delete" style="font-size: 10px;">いいえ</button>
         </div>
       `;
       div.querySelector("p").textContent = item.content;
@@ -300,6 +300,27 @@ async function fetchStatuses() {
   } catch (err) {
     listEl.innerHTML = '<p style="color: #F00;">近況の読み込みに失敗しました。</p>';
   }
+}
+
+// イベント委譲による近況操作
+function initStatusEvents() {
+  const listEl = document.getElementById("status-list");
+  if (!listEl) return;
+
+  listEl.addEventListener("click", (e) => {
+    const btn = e.target.closest(".status-btn");
+    if (!btn) return;
+
+    const id = btn.dataset.id;
+    const action = btn.dataset.action;
+
+    if (action === "edit") startEditStatus(id);
+    else if (action === "delete") showDeleteStatusConfirm(id);
+    else if (action === "confirm-delete") performDeleteStatus(id);
+    else if (action === "cancel-delete") hideDeleteStatusConfirm(id);
+    else if (action === "save") saveEditStatus(id);
+    else if (action === "cancel") cancelEditStatus(id);
+  });
 }
 
 // 近況投稿機能の初期化
@@ -347,9 +368,10 @@ window.startEditStatus = (id) => {
   const formEl = document.getElementById(`status-edit-form-${id}`);
   const inputEl = document.getElementById(`status-edit-input-${id}`);
   const controlsEl = document.getElementById(`status-controls-${id}`);
-  inputEl.value = textEl.innerText;
+  inputEl.value = textEl.textContent;
   textEl.style.display = "none";
   formEl.classList.remove("hidden");
+  formEl.style.display = "block";
   if (controlsEl) controlsEl.style.display = "none";
 };
 
@@ -359,6 +381,7 @@ window.cancelEditStatus = (id) => {
   const controlsEl = document.getElementById(`status-controls-${id}`);
   textEl.style.display = "block";
   formEl.classList.add("hidden");
+  formEl.style.display = "none";
   if (controlsEl) controlsEl.style.display = "block";
 };
 
@@ -395,6 +418,7 @@ window.showDeleteStatusConfirm = (id) => {
   const confirmEl = document.getElementById(`status-delete-confirm-${id}`);
   const controlsEl = document.getElementById(`status-controls-${id}`);
   confirmEl.classList.remove("hidden");
+  confirmEl.style.display = "block";
   if (controlsEl) controlsEl.style.display = "none";
 };
 
@@ -402,6 +426,7 @@ window.hideDeleteStatusConfirm = (id) => {
   const confirmEl = document.getElementById(`status-delete-confirm-${id}`);
   const controlsEl = document.getElementById(`status-controls-${id}`);
   confirmEl.classList.add("hidden");
+  confirmEl.style.display = "none";
   if (controlsEl) controlsEl.style.display = "block";
 };
 
@@ -494,5 +519,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   initNewsEvents();
   fetchStatuses();
   initStatusPosting();
+  initStatusEvents();
   fetchPublicClaps();
 });
