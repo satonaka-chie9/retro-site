@@ -6,6 +6,10 @@ body {
   font: 14px/1.4 "MS UI Gothic", monospace;
 }
 
+a {
+  color: #00FF00;
+}
+
 .title {
   text-align: center;
   margin: 20px 0;
