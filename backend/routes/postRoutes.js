@@ -66,7 +66,7 @@ router.get("/", (req, res) => {
     sql += " WHERE thread_id IS NULL";
   }
 
-  db.all(sql, params, (err, rows) => {
+  db.all(sql + " ORDER BY created_at ASC, id ASC", params, (err, rows) => {
     if (err) {
       console.error(err);
       return res.status(500).json({ error: "サーバー内部エラーが発生しました" });
@@ -139,35 +139,47 @@ router.post("/", postLimiter, checkIPBan, postValidation, validate, async (req, 
         }
 
         // ぬるぽチェック
-        //むかしの掲示板でnul pointer exceptionを意味する「ぬるぽ」という言葉が投稿されたときに、レスポンスとして「ガッ」と返す文化がありました。ここでは、その文化を再現するために、投稿内容に「ぬるぽ」が含まれている場合に自動で「ガッ」という投稿を生成する機能を実装しています。
-        //遊び心として導入してみました。
         if (content && content.includes("ぬるぽ")) {
-          const postId = this.lastID;
-          
-          // 返信バリエーション
-          const responses = [
-            `>>${postId}\nガッ`,
-            `>>${postId}\nガッ！`,
-            `>>${postId}\nガッ！！`,
-            `>>${postId}\nガッｗ`,
-            `>>${postId}\n　　　　 ∧＿∧ 　ガッ\n　　　 （　・∀・）\n　　　 ⊂　　　つ\n　　　 （　⌒　）\n　　　　し' じ`
-          ];
-          const botMessage = responses[Math.floor(Math.random() * responses.length)];
-          
-          // 0.7秒から3.2秒の間でランダムに待機してから自動返信を実行
-          const delay = Math.floor(Math.random() * (3200 - 700 + 1)) + 700;
-          setTimeout(() => {
-            db.run(
-              "INSERT INTO posts (name, content, device_id, ip, thread_id) VALUES (?, ?, ?, ?, ?)",
-              ["null_bot", botMessage, "bot_id", "127.0.0.1", thread_id],
-              function (botErr) {
-                if (botErr) {
-                  console.error("Bot response failed:", botErr);
+          // 投稿番号（スレッド内での順序）を取得するために、現在のスレッドの投稿数をカウントする
+          // これにより、>>1, >>2 のような形式で正しく返信できる
+          const countSql = thread_id 
+            ? "SELECT COUNT(*) as count FROM posts WHERE thread_id = ?" 
+            : "SELECT COUNT(*) as count FROM posts WHERE thread_id IS NULL";
+          const countParams = thread_id ? [thread_id] : [];
+
+          db.get(countSql, countParams, (countErr, row) => {
+            if (countErr) {
+              console.error("Failed to count posts for bot response:", countErr);
+              return;
+            }
+
+            const postNumber = row.count;
+            
+            // 返信バリエーション
+            const responses = [
+              `>>${postNumber}\nガッ`,
+              `>>${postNumber}\nガッ！`,
+              `>>${postNumber}\nガッ！！`,
+              `>>${postNumber}\nガッｗ`,
+              `>>${postNumber}\n　　　　 ∧＿∧ 　ガッ\n　　　 （　・∀・）\n　　　 ⊂　　　つ\n　　　 （　⌒　）\n　　　　し' じ`
+            ];
+            const botMessage = responses[Math.floor(Math.random() * responses.length)];
+            
+            // 0.7秒から3.2秒の間でランダムに待機してから自動返信を実行
+            const delay = Math.floor(Math.random() * (3200 - 700 + 1)) + 700;
+            setTimeout(() => {
+              db.run(
+                "INSERT INTO posts (name, content, device_id, ip, thread_id) VALUES (?, ?, ?, ?, ?)",
+                ["null_bot", botMessage, "bot_id", "127.0.0.1", thread_id],
+                function (botErr) {
+                  if (botErr) {
+                    console.error("Bot response failed:", botErr);
+                  }
+                  if (req.io) req.io.emit("post_update");
                 }
-                if (req.io) req.io.emit("post_update");
-              }
-            );
-          }, delay);
+              );
+            }, delay);
+          });
         } else {
           if (req.io) req.io.emit("post_update");
         }

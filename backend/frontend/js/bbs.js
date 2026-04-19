@@ -163,7 +163,7 @@ async function loadPosts() {
   const isAdmin = adminToken.length > 0;
 
   // 取得した投稿データをループしてHTML要素を生成し、ページに表示します。各投稿には編集・削除ボタンがあり、ユーザーは自分の投稿を管理できます。
-  data.forEach(post => {
+  data.forEach((post, index) => {
     const div = document.createElement("div");
     div.className = "post";
 
@@ -215,8 +215,8 @@ async function loadPosts() {
     `;
     
 
-    // 投稿の内容をHTML要素にセットします。これには、投稿のID、名前、作成日時、編集マーク、内容などが含まれます。
-    div.querySelector(".post-id").textContent = post.id;
+    // 投稿の内容をHTML要素にセットします。これには、投稿の番号（1から開始）、名前、作成日時、編集マーク、内容などが含まれます。
+    div.querySelector(".post-id").textContent = index + 1;
     div.querySelector(".post-name").textContent = post.name;
     div.querySelector(".post-date").textContent = created;
     div.querySelector(".post-edited").textContent = editedMark;

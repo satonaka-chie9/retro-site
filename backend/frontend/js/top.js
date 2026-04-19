@@ -49,13 +49,15 @@ async function fetchNews() {
       const dateStr = formatDate(dateVal);
       
       // お知らせアイテムのHTML構造を作成します。管理者の場合は、編集と削除のボタンも表示されます。編集フォームと削除確認も同じ構造内に用意しておき、必要に応じて表示・非表示を切り替えます。
+      //昔のサイトではサイトの更新状況を投稿する欄があったので再現してみました
       const div = document.createElement("div");
       div.className = "news-item";
       div.id = `news-item-${item.id}`;
       div.style.marginBottom = "15px";
       div.style.borderBottom = "1px dotted #333";
       div.style.paddingBottom = "10px";
-
+      
+      //インライン編集を実装しましたこれによりUXを強化しました
       div.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px;">
           <span style="font-size: 0.8em; color: #888;" class="news-date-display"></span>
@@ -242,6 +244,8 @@ window.performDeleteNews = async (id) => {
   }
 };
 
+// 近況をAPIから取得して表示する関数。お知らせと同様に、APIエンドポイントから近況のリストを取得し、HTMLに整形して表示します。管理者の場合は、編集や削除のオプションも表示されます。 
+//昔のサイトでは近況を投稿する文化があったので再現してみました
 async function fetchStatuses() {
   const listEl = document.getElementById("status-list");
   if (!listEl) return;
@@ -266,6 +270,7 @@ async function fetchStatuses() {
       div.style.borderBottom = "1px dotted #333";
       div.style.paddingBottom = "5px";
 
+      //インライン編集を実装しましたこれによりUXを強化しました
       div.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: baseline;">
           <span style="font-size: 0.8em; color: #888;">[${dateStr}]</span>

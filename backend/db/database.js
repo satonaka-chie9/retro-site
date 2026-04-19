@@ -57,9 +57,23 @@ if (isPostgres) {
          }
       }
       
+      // INSERT文の場合、RETURNING id を追加して inserted id を取得できるようにする（Postgres用）
+      const isInsert = finalSql.trim().toUpperCase().startsWith("INSERT");
+      if (isInsert && !finalSql.toUpperCase().includes("RETURNING")) {
+        finalSql += " RETURNING id";
+      }
+
       pool.query(finalSql, params, function(err, result) {
         if (err) console.error(`[DB] Query Error (run): ${finalSql}`, err);
-        if (callback) callback.call({ lastID: result ? result.oid : null }, err);
+        
+        let lastID = null;
+        if (result && result.rows && result.rows.length > 0) {
+          lastID = result.rows[0].id;
+        } else if (result) {
+          lastID = result.oid;
+        }
+
+        if (callback) callback.call({ lastID: lastID }, err);
       });
     },
     isPostgres: true,
